@@ -125,11 +125,28 @@ class AudioManager {
       gain.gain.setValueAtTime(0.25, this.ctx.currentTime + idx * 0.1);
       gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.3);
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(this.ctx.currentTime + idx * 0.1);
       osc.stop(this.ctx.currentTime + idx * 0.1 + 0.3);
     });
+  }
+
+  playMonsterHit() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.12);
+
+    gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.12);
   }
 }
 

@@ -135,30 +135,32 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
     // 1. Update Heroes (Movement + Gambits)
     aliveHeroes.forEach(hero => {
-      // Passive MP Regen
       if (hero.mp < hero.maxMp) hero.mp = Math.min(hero.maxMp, hero.mp + 5 * dt);
 
-      // Evaluate Gambits
       const decision = evaluateGambits(hero, aliveHeroes, aliveEnemies);
       if (decision) {
         const { target, actionDef } = decision;
         const dist = getDistance(hero, target);
         const effectiveRange = actionDef.id === 'ATTACK' ? (hero.range || 55) : 220;
 
-        // Position / Movement logic
         if (dist > effectiveRange) {
-          moveTowards(hero, target, 90 * (hero.speed || 1.0), dt);
+          moveTowards(hero, target, 95 * (hero.speed || 1.0), dt);
         } else {
           executeAction(hero, target, actionDef, true);
           hero.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
         }
+      } else {
+        // Fallback: Continue moving toward nearest enemy if actions are on cooldown
+        const nearestEnemy = [...aliveEnemies].sort((a, b) => getDistance(hero, a) - getDistance(hero, b))[0];
+        if (nearestEnemy && getDistance(hero, nearestEnemy) > (hero.range || 55)) {
+          moveTowards(hero, nearestEnemy, 95 * (hero.speed || 1.0), dt);
+        }
       }
     });
 
-    // 2. Update Enemies (Movement + Gambits) - FIXED ENEMY AI ATTACKING!
+    // 2. Update Enemies (Movement + Gambits) - ACTIVE CONTINUOUS AI!
     aliveEnemies.forEach(enemy => {
-      // Passive MP Regen
-      if (enemy.mp < enemy.maxMp) enemy.mp = Math.min(enemy.maxMp, enemy.mp + 4 * dt);
+      if (enemy.mp < enemy.maxMp) enemy.mp = Math.min(enemy.maxMp, enemy.mp + 6 * dt);
 
       const decision = evaluateGambits(enemy, aliveEnemies, aliveHeroes);
       if (decision) {
@@ -167,21 +169,26 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         const effectiveRange = actionDef.id === 'ATTACK' ? (enemy.range || 55) : 200;
 
         if (dist > effectiveRange) {
-          moveTowards(enemy, target, 80 * (enemy.speed || 1.0), dt);
+          moveTowards(enemy, target, 90 * (enemy.speed || 1.0), dt);
         } else {
           executeAction(enemy, target, actionDef, false);
           enemy.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
         }
+      } else {
+        // Fallback: Continue aggressively charging toward nearest hero if skills are on cooldown
+        const nearestHero = [...aliveHeroes].sort((a, b) => getDistance(enemy, a) - getDistance(enemy, b))[0];
+        if (nearestHero && getDistance(enemy, nearestHero) > (enemy.range || 55)) {
+          moveTowards(enemy, nearestHero, 90 * (enemy.speed || 1.0), dt);
+        }
       }
     });
 
-    // 3. Update Flying Projectiles (Fireballs, Arrows, Lightning, Heal Beams)
+    // 3. Update Flying Projectiles
     projectilesRef.current = projectilesRef.current.filter(p => {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
 
-      // Check hit target
       if (getDistance(p, p.target) < 20) {
         onProjectileImpact(p);
         return false;
@@ -220,18 +227,22 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
     if (actionDef.id === 'ATTACK') {
       // Melee Lunge animation impulse
-      attacker.x += (target.x > attacker.x ? 8 : -8);
+      attacker.x += (target.x > attacker.x ? 10 : -10);
 
-      const rawDmg = Math.max(6, attacker.attack - (target.defense || 0) * 0.4);
+      const rawDmg = Math.max(8, attacker.attack - (target.defense || 0) * 0.4);
       const isCrit = Math.random() < 0.25;
       const dmg = Math.round(isCrit ? rawDmg * 1.6 : rawDmg);
 
       target.hp = Math.max(0, target.hp - dmg);
-      if (isHero) audioManager.playSlash();
+      if (isHero) {
+        audioManager.playSlash();
+      } else {
+        audioManager.playMonsterHit();
+      }
 
-      addFloatingText(target.x, target.y - 20, `-${dmg}${isCrit ? ' CRIT!' : ''}`, isCrit ? '#f59e0b' : (isHero ? '#ef4444' : '#f87171'));
-      addLog(`⚔️ ${attacker.name} hit ${target.name} for ${dmg} DMG!`);
-      spawnParticles(target.x, target.y, '#ef4444', 8);
+      addFloatingText(target.x, target.y - 20, `-${dmg}${isCrit ? ' CRIT!' : ''}`, isCrit ? '#f59e0b' : (isHero ? '#ef4444' : '#dc2626'));
+      addLog(isHero ? `⚔️ ${attacker.name} hit ${target.name} for ${dmg} DMG!` : `🩸 ${attacker.name} struck ${target.name} for ${dmg} DMG!`);
+      spawnParticles(target.x, target.y, isHero ? '#ef4444' : '#dc2626', 10);
     } else if (actionDef.id === 'FIREBALL') {
       spawnProjectile(attacker, target, 'fireball', '#f97316');
       audioManager.playFireball();
