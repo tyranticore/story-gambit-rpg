@@ -9,77 +9,86 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
   const encounter = ENCOUNTERS[encounterKey] || ENCOUNTERS.goblin_patrol;
 
   const [battleState, setBattleState] = useState('RUNNING'); // RUNNING, VICTORY, DEFEAT, PAUSED
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(1.0); // 0.75x, 1x, 1.5x
   const [combatLogs, setCombatLogs] = useState([]);
 
   const canvasRef = useRef(null);
 
-  // Assemble full 4-unit Hero Party (Player Leader + Followers)
+  // Assemble full 4-unit Hero Party with clean initial spatial formation
   const heroesRef = useRef([
     {
       id: 'player_hero',
       name: playerStats.name || 'Hero Commander',
       classId: playerStats.classId || 'warrior',
-      maxHp: playerStats.maxHp || 140,
-      hp: playerStats.hp || 140,
+      maxHp: playerStats.maxHp || 160,
+      hp: playerStats.hp || 160,
       maxMp: playerStats.maxMp || 60,
       mp: playerStats.mp || 60,
-      attack: playerStats.attack || 26,
+      attack: playerStats.attack || 28,
       defense: playerStats.defense || 10,
-      speed: playerStats.speed || 1.1,
+      speed: playerStats.speed || 1.0,
       range: playerStats.range || 55,
       gambits: playerGambits,
       cooldowns: {},
       x: 100,
       y: 190,
-      vx: 0,
-      vy: 0,
       size: 34,
       color: '#d4af37',
-      role: 'Leader'
+      role: 'Leader',
+      hitTimer: 0
     },
-    ...(followers || []).map((f, idx) => ({
-      id: `follower_${f.id}`,
-      name: f.name,
-      classId: f.classId,
-      maxHp: f.stats.maxHp,
-      hp: f.stats.maxHp,
-      maxMp: f.stats.maxMp,
-      mp: f.stats.maxMp,
-      attack: f.stats.attack,
-      defense: f.stats.defense,
-      speed: f.stats.speed || 1.0,
-      range: f.stats.range || (f.classId === 'mage' || f.classId === 'archer' ? 200 : 55),
-      gambits: [
-        { id: 'f_1', enabled: true, condition: 'ALLY_HP_BELOW_40', target: 'ALLY_MOST_HURT', action: 'HEAL_LIGHT' },
-        { id: 'f_2', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'HEAL_LIGHT' },
-        { id: 'f_3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
-      ],
-      cooldowns: {},
-      x: 80,
-      y: 100 + idx * 80,
-      vx: 0,
-      vy: 0,
-      size: 30,
-      color: f.color || '#3b82f6',
-      role: 'Follower'
-    }))
+    ...(followers || []).map((f, idx) => {
+      const initialPositions = [
+        { x: 70, y: 100 },
+        { x: 60, y: 280 },
+        { x: 50, y: 190 }
+      ];
+      const pos = initialPositions[idx] || { x: 70, y: 100 + idx * 80 };
+      return {
+        id: `follower_${f.id}`,
+        name: f.name,
+        classId: f.classId,
+        maxHp: f.stats.maxHp,
+        hp: f.stats.maxHp,
+        maxMp: f.stats.maxMp,
+        mp: f.stats.maxMp,
+        attack: f.stats.attack,
+        defense: f.stats.defense,
+        speed: f.stats.speed || 1.0,
+        range: f.stats.range || (f.classId === 'mage' || f.classId === 'archer' ? 200 : 55),
+        gambits: [
+          { id: 'f_1', enabled: true, condition: 'ALLY_HP_BELOW_40', target: 'ALLY_MOST_HURT', action: 'HEAL_LIGHT' },
+          { id: 'f_2', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'HEAL_LIGHT' },
+          { id: 'f_3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+        ],
+        cooldowns: {},
+        x: pos.x,
+        y: pos.y,
+        size: 30,
+        color: f.color || '#3b82f6',
+        role: 'Follower',
+        hitTimer: 0
+      };
+    })
   ]);
 
-  // Enemies
+  // Enemies with clean initial spatial formation
   const enemiesRef = useRef(
-    encounter.enemies.map(e => ({
-      ...e,
-      maxHp: e.maxHp,
-      hp: e.maxHp,
-      maxMp: e.maxMp || 20,
-      mp: e.maxMp || 20,
-      cooldowns: {},
-      x: 580 * (e.xRatio || 0.8),
-      y: 350 * (e.yRatio || 0.5),
-      vx: 0,
-      vy: 0
-    }))
+    encounter.enemies.map((e, idx) => {
+      const defaultYPositions = [110, 200, 290];
+      return {
+        ...e,
+        maxHp: e.maxHp,
+        hp: e.maxHp,
+        maxMp: e.maxMp || 50,
+        mp: e.maxMp || 50,
+        cooldowns: {},
+        x: 560 * (e.xRatio || 0.85),
+        y: 350 * (e.yRatio || 0.5) || defaultYPositions[idx % 3],
+        size: e.size || 32,
+        hitTimer: 0
+      };
+    })
   );
 
   const projectilesRef = useRef([]);
@@ -87,7 +96,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
   const floatingTextsRef = useRef([]);
 
   const addLog = (text) => {
-    setCombatLogs(prev => [text, ...prev.slice(0, 18)]);
+    setCombatLogs(prev => [text, ...prev.slice(0, 24)]);
   };
 
   useEffect(() => {
@@ -118,6 +127,11 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
     const aliveHeroes = heroes.filter(h => h.hp > 0);
     const aliveEnemies = enemies.filter(e => e.hp > 0);
 
+    // Decrement hit timers
+    [...heroes, ...enemies].forEach(u => {
+      if (u.hitTimer > 0) u.hitTimer = Math.max(0, u.hitTimer - dt);
+    });
+
     // Check Victory / Defeat
     if (aliveEnemies.length === 0 && battleState === 'RUNNING') {
       setBattleState('VICTORY');
@@ -135,55 +149,86 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
     // 1. Update Heroes (Movement + Gambits)
     aliveHeroes.forEach(hero => {
-      if (hero.mp < hero.maxMp) hero.mp = Math.min(hero.maxMp, hero.mp + 5 * dt);
+      if (hero.mp < hero.maxMp) hero.mp = Math.min(hero.maxMp, hero.mp + 4 * dt);
 
       const decision = evaluateGambits(hero, aliveHeroes, aliveEnemies);
       if (decision) {
         const { target, actionDef } = decision;
         const dist = getDistance(hero, target);
-        const effectiveRange = actionDef.id === 'ATTACK' ? (hero.range || 55) : 220;
+        const effectiveRange = actionDef.id === 'ATTACK' ? (hero.range || 55) : 200;
 
         if (dist > effectiveRange) {
-          moveTowards(hero, target, 95 * (hero.speed || 1.0), dt);
+          moveTowards(hero, target, 48 * (hero.speed || 1.0), dt);
         } else {
           executeAction(hero, target, actionDef, true);
           hero.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
         }
       } else {
-        // Fallback: Continue moving toward nearest enemy if actions are on cooldown
+        // Fallback: Charge toward nearest enemy if skills are on cooldown
         const nearestEnemy = [...aliveEnemies].sort((a, b) => getDistance(hero, a) - getDistance(hero, b))[0];
         if (nearestEnemy && getDistance(hero, nearestEnemy) > (hero.range || 55)) {
-          moveTowards(hero, nearestEnemy, 95 * (hero.speed || 1.0), dt);
+          moveTowards(hero, nearestEnemy, 48 * (hero.speed || 1.0), dt);
         }
       }
     });
 
     // 2. Update Enemies (Movement + Gambits) - ACTIVE CONTINUOUS AI!
     aliveEnemies.forEach(enemy => {
-      if (enemy.mp < enemy.maxMp) enemy.mp = Math.min(enemy.maxMp, enemy.mp + 6 * dt);
+      if (enemy.mp < enemy.maxMp) enemy.mp = Math.min(enemy.maxMp, enemy.mp + 5 * dt);
 
       const decision = evaluateGambits(enemy, aliveEnemies, aliveHeroes);
       if (decision) {
         const { target, actionDef } = decision;
         const dist = getDistance(enemy, target);
-        const effectiveRange = actionDef.id === 'ATTACK' ? (enemy.range || 55) : 200;
+        const effectiveRange = actionDef.id === 'ATTACK' ? (enemy.range || 55) : 180;
 
         if (dist > effectiveRange) {
-          moveTowards(enemy, target, 90 * (enemy.speed || 1.0), dt);
+          moveTowards(enemy, target, 45 * (enemy.speed || 1.0), dt);
         } else {
           executeAction(enemy, target, actionDef, false);
           enemy.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
         }
       } else {
-        // Fallback: Continue aggressively charging toward nearest hero if skills are on cooldown
+        // Fallback: Charge toward nearest hero if skills are on cooldown
         const nearestHero = [...aliveHeroes].sort((a, b) => getDistance(enemy, a) - getDistance(enemy, b))[0];
         if (nearestHero && getDistance(enemy, nearestHero) > (enemy.range || 55)) {
-          moveTowards(enemy, nearestHero, 90 * (enemy.speed || 1.0), dt);
+          moveTowards(enemy, nearestHero, 45 * (enemy.speed || 1.0), dt);
         }
       }
     });
 
-    // 3. Update Flying Projectiles
+    // 3. CIRCLE COLLISION RESOLUTION FORCE (Prevents units from overlapping / stacking on top of each other!)
+    const allUnits = [...aliveHeroes, ...aliveEnemies];
+    for (let i = 0; i < allUnits.length; i++) {
+      for (let j = i + 1; j < allUnits.length; j++) {
+        const u1 = allUnits[i];
+        const u2 = allUnits[j];
+        const dx = u2.x - u1.x;
+        const dy = u2.y - u1.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = (u1.size || 30) * 0.5 + (u2.size || 30) * 0.5 + 14; // 14px padding so units stand side-by-side!
+
+        if (dist < minDist) {
+          const overlap = minDist - (dist || 0.1);
+          const nx = dist > 0 ? dx / dist : (Math.random() - 0.5);
+          const ny = dist > 0 ? dy / dist : (Math.random() - 0.5);
+
+          const pushStrength = overlap * 0.5;
+          u1.x -= nx * pushStrength;
+          u1.y -= ny * pushStrength;
+          u2.x += nx * pushStrength;
+          u2.y += ny * pushStrength;
+
+          // Keep within arena bounds
+          u1.x = Math.max(35, Math.min(610, u1.x));
+          u1.y = Math.max(35, Math.min(365, u1.y));
+          u2.x = Math.max(35, Math.min(610, u2.x));
+          u2.y = Math.max(35, Math.min(365, u2.y));
+        }
+      }
+    }
+
+    // 4. Update Flying Projectiles (Fireballs, Arrows, Lightning)
     projectilesRef.current = projectilesRef.current.filter(p => {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
@@ -196,7 +241,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       return p.life > 0;
     });
 
-    // 4. Update Particles
+    // 5. Update Particles
     particlesRef.current = particlesRef.current.filter(p => {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
@@ -204,9 +249,9 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       return p.life > 0;
     });
 
-    // 5. Update Floating Combat Texts
+    // 6. Update Floating Combat Texts
     floatingTextsRef.current = floatingTextsRef.current.filter(ft => {
-      ft.y -= 25 * dt;
+      ft.y -= 20 * dt;
       ft.life -= dt;
       return ft.life > 0;
     });
@@ -226,22 +271,26 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
     attacker.mp = Math.max(0, attacker.mp - actionDef.mpCost);
 
     if (actionDef.id === 'ATTACK') {
-      // Melee Lunge animation impulse
-      attacker.x += (target.x > attacker.x ? 10 : -10);
+      // Melee Lunge impulse animation
+      attacker.x += (target.x > attacker.x ? 8 : -8);
 
       const rawDmg = Math.max(8, attacker.attack - (target.defense || 0) * 0.4);
       const isCrit = Math.random() < 0.25;
       const dmg = Math.round(isCrit ? rawDmg * 1.6 : rawDmg);
 
       target.hp = Math.max(0, target.hp - dmg);
+      target.hitTimer = 0.25;
+
       if (isHero) {
         audioManager.playSlash();
+        addFloatingText(target.x, target.y - 20, `-${dmg}${isCrit ? ' CRIT!' : ''}`, isCrit ? '#f59e0b' : '#ef4444');
+        addLog(`⚔️ ${attacker.name} hit ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       } else {
         audioManager.playMonsterHit();
+        addFloatingText(target.x, target.y - 20, `🩸 -${dmg}${isCrit ? ' CRIT!' : ''}`, '#f87171');
+        addLog(`🩸 MONSTER ATTACK: ${attacker.name} struck ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       }
 
-      addFloatingText(target.x, target.y - 20, `-${dmg}${isCrit ? ' CRIT!' : ''}`, isCrit ? '#f59e0b' : (isHero ? '#ef4444' : '#dc2626'));
-      addLog(isHero ? `⚔️ ${attacker.name} hit ${target.name} for ${dmg} DMG!` : `🩸 ${attacker.name} struck ${target.name} for ${dmg} DMG!`);
       spawnParticles(target.x, target.y, isHero ? '#ef4444' : '#dc2626', 10);
     } else if (actionDef.id === 'FIREBALL') {
       spawnProjectile(attacker, target, 'fireball', '#f97316');
@@ -257,7 +306,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       audioManager.playHeal();
 
       addFloatingText(target.x, target.y - 20, `+${healAmt} HP`, '#10b981');
-      addLog(`✨ ${attacker.name} healed ${target.name} for +${healAmt} HP!`);
+      addLog(`✨ ${attacker.name} healed ${target.name} for +${healAmt} HP! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       spawnParticles(target.x, target.y, '#34d399', 12);
     } else if (actionDef.id === 'POISON_DART') {
       spawnProjectile(attacker, target, 'poison', '#a855f7');
@@ -272,7 +321,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
     const dx = target.x - attacker.x;
     const dy = target.y - attacker.y;
     const len = Math.sqrt(dx * dx + dy * dy);
-    const speedPx = 300;
+    const speedPx = 160; // Smooth readable projectile flight speed!
 
     projectilesRef.current.push({
       x: attacker.x,
@@ -283,32 +332,41 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       type,
       color,
       attacker,
-      life: 2.0
+      life: 2.5
     });
   };
 
   const onProjectileImpact = (p) => {
     const { attacker, target, type } = p;
+    const isHeroAttacker = heroesRef.current.some(h => h.id === attacker.id);
+    const prefix = isHeroAttacker ? '⚔️' : '🩸 MONSTER';
+
     if (type === 'fireball') {
       const dmg = Math.round(75 + (attacker.attack || 0) * 0.4);
       target.hp = Math.max(0, target.hp - dmg);
+      target.hitTimer = 0.3;
       addFloatingText(target.x, target.y - 20, `💥 -${dmg}`, '#f97316');
+      addLog(`${prefix} Fireball blasted ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       spawnParticles(target.x, target.y, '#f97316', 16);
     } else if (type === 'lightning') {
       const dmg = 110;
       target.hp = Math.max(0, target.hp - dmg);
+      target.hitTimer = 0.3;
       addFloatingText(target.x, target.y - 20, `⚡ -${dmg}`, '#60a5fa');
+      addLog(`${prefix} Lightning struck ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       spawnParticles(target.x, target.y, '#60a5fa', 18);
     } else if (type === 'poison') {
       const dmg = 35;
       target.hp = Math.max(0, target.hp - dmg);
+      target.hitTimer = 0.3;
       addFloatingText(target.x, target.y - 20, `☣️ -${dmg}`, '#c084fc');
+      addLog(`${prefix} Poison Dart hit ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       spawnParticles(target.x, target.y, '#a855f7', 10);
     }
   };
 
   const addFloatingText = (x, y, text, color) => {
-    floatingTextsRef.current.push({ x, y, text, color, life: 1.2 });
+    floatingTextsRef.current.push({ x, y, text, color, life: 1.4 });
   };
 
   const spawnParticles = (x, y, color, count) => {
@@ -316,8 +374,8 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       particlesRef.current.push({
         x,
         y,
-        vx: (Math.random() - 0.5) * 120,
-        vy: (Math.random() - 0.5) * 120,
+        vx: (Math.random() - 0.5) * 100,
+        vy: (Math.random() - 0.5) * 100,
         color,
         life: 0.4 + Math.random() * 0.4,
         size: 3 + Math.random() * 4
@@ -402,7 +460,15 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
   };
 
   const drawUnit = (ctx, unit, isHero) => {
-    const { x, y, size, color, hp, maxHp, name } = unit;
+    const { x, y, size, color, hp, maxHp, name, hitTimer } = unit;
+
+    // Hit Flash Ring Effect
+    if (hitTimer && hitTimer > 0) {
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -456,13 +522,26 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
         {/* Speed & Pause Controls */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSpeed(speed === 1 ? 2 : 1)}
-            className="fantasy-button text-xs px-2.5 py-1 font-mono"
-          >
-            <FastForward className="w-3.5 h-3.5" />
-            <span>{speed}x Speed</span>
-          </button>
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+            <button
+              onClick={() => setSpeed(0.75)}
+              className={`px-2 py-1 rounded-md font-mono text-[11px] ${speed === 0.75 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              0.75x
+            </button>
+            <button
+              onClick={() => setSpeed(1.0)}
+              className={`px-2 py-1 rounded-md font-mono text-[11px] ${speed === 1.0 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              1.0x
+            </button>
+            <button
+              onClick={() => setSpeed(1.5)}
+              className={`px-2 py-1 rounded-md font-mono text-[11px] ${speed === 1.5 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              1.5x
+            </button>
+          </div>
 
           <button
             onClick={() => setBattleState(battleState === 'PAUSED' ? 'RUNNING' : 'PAUSED')}
@@ -518,17 +597,39 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
         {/* Combat Ticker Logs */}
         <div className="fantasy-panel p-4 flex flex-col h-[400px] bg-slate-950">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2 border-b border-slate-800 pb-1.5 flex items-center gap-1.5">
-            <Swords className="w-3.5 h-3.5" />
-            <span>Party Combat Ticker</span>
-          </h4>
+          <div className="flex items-center justify-between border-b border-amber-500/20 pb-2 mb-3">
+            <h3 className="text-xs font-bold font-serif text-amber-200 flex items-center gap-1.5 uppercase tracking-wider">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>Combat Action Ticker</span>
+            </h3>
+            <span className="text-[10px] font-mono text-slate-400">Live Updates</span>
+          </div>
 
-          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 text-xs font-mono text-slate-300">
-            {combatLogs.map((log, idx) => (
-              <div key={idx} className="p-1.5 rounded bg-slate-900/60 border border-slate-800/60 leading-tight">
-                {log}
-              </div>
-            ))}
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 font-mono text-xs">
+            {combatLogs.length === 0 ? (
+              <p className="text-slate-500 italic text-center py-10">Combat starting...</p>
+            ) : (
+              combatLogs.map((log, idx) => (
+                <div
+                  key={idx}
+                  className={`p-2 rounded border text-left leading-relaxed ${
+                    log.includes('VICTORY')
+                      ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200 font-bold'
+                      : log.includes('DEFEAT')
+                      ? 'bg-red-950/80 border-red-500/40 text-red-200 font-bold'
+                      : log.includes('MONSTER')
+                      ? 'bg-red-950/40 border-red-500/30 text-red-300 font-semibold'
+                      : log.includes('✨')
+                      ? 'bg-emerald-950/30 border-emerald-500/20 text-emerald-300'
+                      : log.includes('🔥') || log.includes('⚡')
+                      ? 'bg-amber-950/30 border-amber-500/20 text-amber-200'
+                      : 'bg-slate-900 border-slate-800 text-slate-200'
+                  }`}
+                >
+                  {log}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
