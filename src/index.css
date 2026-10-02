@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-dark: #090a0f;
+    --panel-bg: rgba(18, 22, 34, 0.85);
+    --panel-border: rgba(212, 175, 55, 0.25);
+    --panel-border-glow: rgba(212, 175, 55, 0.5);
+    --gold: #d4af37;
+    --gold-bright: #fcd34d;
+    --gold-dark: #92400e;
+    --crimson: #dc2626;
+    --mana-blue: #3b82f6;
+    --heal-green: #10b981;
+    --text-primary: #f3f4f6;
+    --text-muted: #9ca3af;
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a324b;
+  border-radius: 4px;
+  border: 1px solid var(--panel-border);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
+}
+
+/* Medieval Fantasy Glassmorphism styling */
+.fantasy-panel {
+  background: linear-gradient(135deg, rgba(20, 24, 38, 0.9) 0%, rgba(12, 14, 23, 0.95) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.67), inset 0 0 12px rgba(212, 175, 55, 0.05);
+  border-radius: 12px;
+}
+
+.fantasy-panel-gold {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15), inset 0 0 15px rgba(212, 175, 55, 0.08);
+}
+
+.fantasy-button {
+  background: linear-gradient(180deg, #2a3148 0%, #151a2a 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #f3f4f6;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.fantasy-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3d4766 0%, #1f273e 100%);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+  transform: translateY(-1px);
+}
+
+.fantasy-button-gold {
+  background: linear-gradient(180deg, #b45309 0%, #78350f 100%);
+  border: 1px solid var(--gold-bright);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+.fantasy-button-gold:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d97706 0%, #92400e 100%);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+}
+
+.fantasy-button-crimson {
+  background: linear-gradient(180deg, #991b1b 0%, #450a0a 100%);
+  border: 1px solid #f87171;
+}
+.fantasy-button-crimson:hover:not(:disabled) {
+  background: linear-gradient(180deg, #dc2626 0%, #7f1d1d 100%);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+}
+
+.fantasy-heading {
+  font-family: 'Cinzel', 'Georgia', serif;
+  letter-spacing: 0.05em;
+  background: linear-gradient(180deg, #fff 0%, #d4af37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(212, 175, 55, 0.7); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes floatAnim {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: floatAnim 3s infinite ease-in-out;
+}
+
+/* Background parchment / map textures */
+.parchment-bg {
+  background-color: #14110f;
+  background-image: radial-gradient(#261f18 1px, transparent 1px), radial-gradient(#1c1611 1px, #14110f 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
