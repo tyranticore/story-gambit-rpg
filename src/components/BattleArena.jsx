@@ -553,6 +553,22 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         </div>
       </div>
 
+      {/* Review Battle Logs Banner */}
+      {battleState === 'REVIEW_LOGS' && (
+        <div className="fantasy-panel p-3 bg-red-950/90 border-red-500/50 flex flex-wrap items-center justify-between gap-3 shadow-xl animate-fade-in">
+          <div className="flex items-center gap-2 text-xs font-bold text-red-200">
+            <Skull className="w-4 h-4 text-red-400 animate-pulse shrink-0" />
+            <span>💀 Party Wiped Out in Battle — Reviewing Combat Report</span>
+          </div>
+          <button
+            onClick={() => onBattleComplete(false)}
+            className="fantasy-button-crimson px-5 py-2 rounded-xl font-bold text-xs shadow-md shrink-0"
+          >
+            Start Over at Beginning
+          </button>
+        </div>
+      )}
+
       {/* 2D Canvas Arena & Live Action Ticker Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Canvas Arena (2 Cols) */}
@@ -581,16 +597,33 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
           {/* Defeat Overlay */}
           {battleState === 'DEFEAT' && (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
-              <Skull className="w-16 h-16 text-red-500 mb-2" />
-              <h3 className="text-3xl font-bold font-serif text-red-300 mb-2">PARTY FELL IN BATTLE</h3>
-              <p className="text-sm text-slate-300 mb-6">Revive at camp and adjust your Party Gambits.</p>
-              <button
-                onClick={() => onBattleComplete(false)}
-                className="fantasy-button-crimson px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl"
-              >
-                Revive Party & Retry
-              </button>
+            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/40 flex items-center justify-center text-red-500 mx-auto animate-pulse">
+                <Skull className="w-10 h-10" />
+              </div>
+              <div className="space-y-1 max-w-md">
+                <h3 className="text-2xl sm:text-3xl font-bold font-serif text-red-300">
+                  PARTY SLAIN IN BATTLE
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300">
+                  Your entire party was wiped out by enemy forces. Inspect the live action ticker to analyze enemy attacks, or start over at the beginning.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full max-w-sm">
+                <button
+                  onClick={() => setBattleState('REVIEW_LOGS')}
+                  className="flex-1 fantasy-button py-2.5 px-4 rounded-xl text-xs font-bold"
+                >
+                  Inspect Battle Ticker Log
+                </button>
+                <button
+                  onClick={() => onBattleComplete(false)}
+                  className="flex-1 fantasy-button-crimson py-2.5 px-4 rounded-xl text-xs font-bold shadow-xl"
+                >
+                  Start Over at Beginning
+                </button>
+              </div>
             </div>
           )}
         </div>

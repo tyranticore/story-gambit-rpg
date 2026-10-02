@@ -243,18 +243,14 @@ export default function App() {
   // Battle Complete Callback
   const handleBattleComplete = (isVictory) => {
     if (!activeBattle) return;
-    const { winPassageId, losePassageId } = activeBattle;
+    const { winPassageId } = activeBattle;
     setActiveBattle(null);
-    setActiveTab('story');
 
     if (isVictory) {
+      setActiveTab('story');
       handleMakeChoice(winPassageId);
     } else {
-      setGameState(prev => ({
-        ...prev,
-        player: { ...prev.player, hp: Math.round(prev.player.maxHp * 0.5) }
-      }));
-      handleMakeChoice(losePassageId);
+      handleResetCampaign();
     }
   };
 
