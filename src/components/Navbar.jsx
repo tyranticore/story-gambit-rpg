@@ -12,171 +12,140 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
     if (!muted) audioManager.playClick();
   };
 
-  const { player, followers, currentMapNodeId } = gameState;
+  const player = gameState?.player || { name: 'Hero', hp: 160, maxHp: 160, mp: 40, maxMp: 40, gold: 120 };
+  const followers = gameState?.followers || [];
+  const currentMapNodeId = gameState?.currentMapNodeId || 'oakhaven';
   const currentMapNode = MAP_NODES.find(n => n.id === currentMapNodeId);
   const isTavernAvailable = currentMapNode ? currentMapNode.hasTavern : true;
 
+  const navItems = [
+    { id: 'hero_select', label: 'Classes', fullLabel: 'Hero Classes', icon: UserCheck, action: () => onOpenHeroSelect() },
+    { id: 'story', label: 'Story', fullLabel: 'Story', icon: BookOpen, action: () => setActiveTab('story') },
+    { id: 'map', label: 'Map', fullLabel: 'Overland Map', icon: Map, action: () => setActiveTab('map') },
+    { id: 'gambits', label: 'Gambits', fullLabel: 'Gambits', icon: Zap, action: () => setActiveTab('gambits') },
+    { 
+      id: 'tavern', 
+      label: `Tavern (${followers ? followers.length : 0}/3)`, 
+      fullLabel: `Tavern (${followers ? followers.length : 0}/3)`, 
+      icon: isTavernAvailable ? Users : Lock, 
+      disabled: !isTavernAvailable,
+      action: () => isTavernAvailable && setActiveTab('tavern') 
+    },
+    { id: 'paperdoll', label: 'Paper Doll', fullLabel: 'Paper Doll Gear', icon: Backpack, action: () => setActiveTab('paperdoll') }
+  ];
+
   return (
-    <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-amber-500/20 px-3 py-2.5 shadow-xl">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-        {/* Brand & Character Quick-Bar */}
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-amber-500/30 px-3 py-2 shadow-2xl">
+      <div className="max-w-7xl mx-auto flex flex-col space-y-2">
+        
+        {/* ROW 1: Header Brand & Top Action Controls */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Brand Title */}
           <button
             onClick={() => { audioManager.playClick(); onOpenHeroSelect(); }}
-            className="flex items-center gap-2 group text-left focus:outline-none"
+            className="flex items-center gap-2 group text-left focus:outline-none shrink-0"
             title="Click to open Hero Class Selection screen"
           >
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold shadow-inner group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 animate-pulse" />
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold shadow-inner group-hover:scale-105 transition-transform">
+              <Sparkles className="w-4 h-4 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-amber-200 tracking-wide font-serif leading-none group-hover:text-amber-400 transition-colors">
+              <h1 className="text-base sm:text-lg font-bold text-amber-200 tracking-wide font-serif leading-none group-hover:text-amber-400 transition-colors">
                 AETHELGARD
               </h1>
-              <p className="text-[10px] text-amber-400/70 uppercase tracking-widest font-semibold">
+              <p className="text-[9px] sm:text-[10px] text-amber-400/70 uppercase tracking-widest font-semibold">
                 Party Gambit RPG
               </p>
             </div>
           </button>
 
-          {/* Quick Stats Pill - Responsive for Mobile & Desktop */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 bg-slate-900/90 border border-amber-500/30 rounded-full px-2.5 py-1 text-[11px] sm:text-xs shadow-inner">
+          {/* Right Action Controls (Sound & Profile Sync) */}
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { audioManager.playClick(); onOpenHeroSelect(); }}
-              className="hidden sm:flex items-center gap-1 text-amber-300 font-bold hover:underline shrink-0"
-              title="Click to open Hero Class Selection"
+              onClick={toggleSound}
+              className="p-1.5 text-slate-400 hover:text-amber-300 bg-slate-900 border border-slate-800 rounded-lg transition-colors"
+              title={muted ? 'Unmute Sound' : 'Mute Sound'}
             >
-              <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span>{player.name} ({player.classId || 'Hero'})</span>
+              {muted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-amber-400" />}
             </button>
-            <div className="hidden sm:block w-px h-3 bg-slate-700" />
-            
+
+            <button
+              onClick={() => { audioManager.playClick(); onOpenSaveModal(); }}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg text-xs font-bold shadow-md border border-amber-400/30 transition-all hover:scale-105"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Sync</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ROW 2: Front & Center Quick Stats Bar (HP, MP, Gold, Hero Name) */}
+        <div className="w-full bg-slate-900/90 border border-amber-500/30 rounded-xl px-3 py-1.5 flex items-center justify-between gap-1 text-xs font-mono shadow-inner">
+          <button
+            onClick={() => { audioManager.playClick(); onOpenHeroSelect(); }}
+            className="flex items-center gap-1 text-amber-300 font-bold hover:underline truncate max-w-[110px] sm:max-w-none"
+            title="Click to open Hero Class Selection"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">{player?.name || 'Hero'}</span>
+          </button>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* HP Status */}
-            <div className="flex items-center gap-1 text-emerald-400 font-bold font-mono">
+            <div className="flex items-center gap-1 text-emerald-400 font-bold">
               <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>HP {player.hp}/{player.maxHp}</span>
+              <span>HP {player?.hp ?? 160}/{player?.maxHp ?? 160}</span>
             </div>
 
-            <div className="w-px h-3 bg-slate-700/80" />
+            <div className="w-px h-3 bg-slate-700" />
 
             {/* MP Status */}
-            <div className="flex items-center gap-1 text-blue-400 font-bold font-mono">
+            <div className="flex items-center gap-1 text-blue-400 font-bold">
               <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <span>MP {player.mp}/{player.maxMp}</span>
+              <span>MP {player?.mp ?? 40}/{player?.maxMp ?? 40}</span>
             </div>
 
-            <div className="w-px h-3 bg-slate-700/80" />
+            <div className="w-px h-3 bg-slate-700" />
 
             {/* Gold Status */}
-            <div className="text-amber-300 font-bold font-mono whitespace-nowrap">
-              💰 {player.gold}g
+            <div className="text-amber-300 font-bold whitespace-nowrap">
+              💰 {player?.gold ?? 120}g
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <nav className="flex items-center gap-1 bg-slate-900/90 border border-amber-500/20 p-1 rounded-xl shadow-inner">
-          <button
-            onClick={() => { audioManager.playClick(); onOpenHeroSelect(); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'hero_select'
-                ? 'bg-amber-500 text-slate-950 shadow-md font-bold'
-                : 'text-amber-300 hover:text-amber-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Hero Classes</span>
-          </button>
+        {/* ROW 3: Responsive Navigation Grid (Fits Mobile Width 100% With NO Side-Scrolling) */}
+        <nav className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-900/90 border border-amber-500/20 p-1 rounded-xl shadow-inner w-full">
+          {navItems.map(item => {
+            const IconComp = item.icon;
+            const isActive = activeTab === item.id;
+            const isDisabled = item.disabled;
 
-          <button
-            onClick={() => { audioManager.playClick(); setActiveTab('story'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'story'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Story</span>
-          </button>
-
-          <button
-            onClick={() => { audioManager.playClick(); setActiveTab('map'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'map'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Map className="w-4 h-4" />
-            <span>Overland Map</span>
-          </button>
-
-          <button
-            onClick={() => { audioManager.playClick(); setActiveTab('gambits'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'gambits'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            <span>Gambits</span>
-          </button>
-
-          {/* TAVERN TAB - Only enabled if current node has a tavern */}
-          <button
-            disabled={!isTavernAvailable}
-            onClick={() => {
-              if (isTavernAvailable) {
-                audioManager.playClick();
-                setActiveTab('tavern');
-              }
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'tavern'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : isTavernAvailable
-                ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                : 'text-slate-600 opacity-50 cursor-not-allowed'
-            }`}
-            title={isTavernAvailable ? 'Visit Town Tavern' : 'Tavern only available in Town locations'}
-          >
-            {isTavernAvailable ? <Users className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-slate-600" />}
-            <span>Tavern ({followers ? followers.length : 0}/3)</span>
-          </button>
-
-          <button
-            onClick={() => { audioManager.playClick(); setActiveTab('paperdoll'); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'paperdoll'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Backpack className="w-4 h-4" />
-            <span>Paper Doll Gear</span>
-          </button>
+            return (
+              <button
+                key={item.id}
+                disabled={isDisabled}
+                onClick={() => {
+                  if (!isDisabled) {
+                    audioManager.playClick();
+                    item.action();
+                  }
+                }}
+                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center ${
+                  isActive
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-bold'
+                    : isDisabled
+                    ? 'bg-slate-950/60 text-slate-600 opacity-50 cursor-not-allowed border border-slate-900'
+                    : 'text-slate-300 hover:text-amber-200 hover:bg-slate-800/60 border border-transparent'
+                }`}
+                title={isDisabled ? 'Tavern only available in Town locations' : item.fullLabel}
+              >
+                <IconComp className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
         </nav>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleSound}
-            className="p-2 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded-lg transition-colors"
-            title={muted ? 'Unmute Sound' : 'Mute Sound'}
-          >
-            {muted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-
-          <button
-            onClick={() => { audioManager.playClick(); onOpenSaveModal(); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-lg text-xs font-semibold shadow-md border border-amber-400/30 transition-all hover:scale-105"
-          >
-            <Save className="w-4 h-4" />
-            <span>Profile Sync</span>
-          </button>
-        </div>
       </div>
     </header>
   );

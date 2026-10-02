@@ -37,6 +37,47 @@ export function getInitialGameState(selectedClassId = 'warrior') {
   };
 }
 
+export function sanitizeGameState(state, selectedClassId = 'warrior') {
+  if (!state || typeof state !== 'object') {
+    return getInitialGameState(selectedClassId);
+  }
+
+  const classId = state.player?.classId || selectedClassId;
+  const defaultState = getInitialGameState(classId);
+
+  return {
+    ...defaultState,
+    ...state,
+    version: state.version || defaultState.version,
+    currentPassageId: state.currentPassageId || defaultState.currentPassageId,
+    currentMapNodeId: state.currentMapNodeId || defaultState.currentMapNodeId,
+    unlockedMapNodes: Array.isArray(state.unlockedMapNodes) && state.unlockedMapNodes.length > 0
+      ? state.unlockedMapNodes
+      : defaultState.unlockedMapNodes,
+    storyFlags: state.storyFlags || {},
+    player: {
+      ...defaultState.player,
+      ...(state.player || {}),
+      name: state.player?.name || defaultState.player.name,
+      gold: typeof state.player?.gold === 'number' ? state.player.gold : defaultState.player.gold,
+      hp: typeof state.player?.hp === 'number' ? state.player.hp : defaultState.player.hp,
+      maxHp: typeof state.player?.maxHp === 'number' ? state.player.maxHp : defaultState.player.maxHp,
+      mp: typeof state.player?.mp === 'number' ? state.player.mp : defaultState.player.mp,
+      maxMp: typeof state.player?.maxMp === 'number' ? state.player.maxMp : defaultState.player.maxMp,
+      paperDoll: {
+        ...defaultState.player.paperDoll,
+        ...(state.player?.paperDoll || {})
+      },
+      gambits: Array.isArray(state.player?.gambits) && state.player.gambits.length > 0
+        ? state.player.gambits
+        : defaultState.player.gambits
+    },
+    followers: Array.isArray(state.followers) ? state.followers : [],
+    sharedBag: Array.isArray(state.sharedBag) ? state.sharedBag : defaultState.sharedBag,
+    journalLog: Array.isArray(state.journalLog) ? state.journalLog : defaultState.journalLog
+  };
+}
+
 export function saveToLocalStorage(state) {
   try {
     const serialized = JSON.stringify({ ...state, timestamp: Date.now() });
@@ -50,9 +91,14 @@ export function saveToLocalStorage(state) {
 
 export function loadFromLocalStorage() {
   try {
+    const urlState = checkUrlForSaveState();
+    if (urlState) return sanitizeGameState(urlState);
+
     const data = localStorage.getItem(SAVE_KEY);
     if (!data) return null;
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return sanitizeGameState(parsed);
   } catch (err) {
     console.error('Failed to load save from localStorage:', err);
     return null;

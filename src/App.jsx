@@ -9,7 +9,7 @@ import HeroSelect from './components/HeroSelect';
 import PaperDollInventory from './components/PaperDollInventory';
 import TavernRecruit from './components/TavernRecruit';
 
-import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage } from './engine/saveManager';
+import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState } from './engine/saveManager';
 import { INITIAL_STORY } from './data/initialStory';
 import { HERO_CLASSES } from './data/heroClasses';
 
@@ -282,7 +282,7 @@ export default function App() {
         {activeTab === 'hero_select' && (
           <HeroSelect
             onSelectHero={handleSelectHero}
-            onLoadSaveState={(loaded) => { setGameState(loaded); setActiveTab('story'); }}
+            onLoadSaveState={(loaded) => { setGameState(sanitizeGameState(loaded)); setActiveTab('story'); }}
           />
         )}
 
@@ -351,7 +351,7 @@ export default function App() {
       {saveModalOpen && (
         <SaveSyncModal
           gameState={gameState}
-          onLoadSaveState={(loaded) => setGameState(loaded)}
+          onLoadSaveState={(loaded) => setGameState(sanitizeGameState(loaded))}
           onClose={() => setSaveModalOpen(false)}
           onResetCampaign={handleResetCampaign}
         />
