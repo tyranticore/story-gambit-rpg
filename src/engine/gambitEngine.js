@@ -9,7 +9,7 @@ export function evaluateGambits(actor, allies, enemies) {
   const now = Date.now();
 
   for (const gambit of actor.gambits) {
-    if (!gambit.enabled) continue;
+    if (gambit.enabled === false) continue;
 
     const actionDef = GAMBIT_ACTIONS.find(a => a.id === gambit.action);
     if (!actionDef) continue;

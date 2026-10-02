@@ -9,7 +9,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
   const encounter = ENCOUNTERS[encounterKey] || ENCOUNTERS.goblin_patrol;
 
   const [battleState, setBattleState] = useState('RUNNING'); // RUNNING, VICTORY, DEFEAT, PAUSED
-  const [speed, setSpeed] = useState(1.0); // 0.75x, 1x, 1.5x
+  const [speed, setSpeed] = useState(0.75); // 0.5x, 0.75x, 1.0x, 1.5x
   const [combatLogs, setCombatLogs] = useState([]);
 
   const canvasRef = useRef(null);
@@ -158,7 +158,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         const effectiveRange = actionDef.id === 'ATTACK' ? (hero.range || 55) : 200;
 
         if (dist > effectiveRange) {
-          moveTowards(hero, target, 48 * (hero.speed || 1.0), dt);
+          moveTowards(hero, target, 32 * (hero.speed || 1.0), dt);
         } else {
           executeAction(hero, target, actionDef, true);
           hero.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
@@ -167,7 +167,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         // Fallback: Charge toward nearest enemy if skills are on cooldown
         const nearestEnemy = [...aliveEnemies].sort((a, b) => getDistance(hero, a) - getDistance(hero, b))[0];
         if (nearestEnemy && getDistance(hero, nearestEnemy) > (hero.range || 55)) {
-          moveTowards(hero, nearestEnemy, 48 * (hero.speed || 1.0), dt);
+          moveTowards(hero, nearestEnemy, 32 * (hero.speed || 1.0), dt);
         }
       }
     });
@@ -183,7 +183,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         const effectiveRange = actionDef.id === 'ATTACK' ? (enemy.range || 55) : 180;
 
         if (dist > effectiveRange) {
-          moveTowards(enemy, target, 45 * (enemy.speed || 1.0), dt);
+          moveTowards(enemy, target, 30 * (enemy.speed || 1.0), dt);
         } else {
           executeAction(enemy, target, actionDef, false);
           enemy.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
@@ -192,7 +192,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         // Fallback: Charge toward nearest hero if skills are on cooldown
         const nearestHero = [...aliveHeroes].sort((a, b) => getDistance(enemy, a) - getDistance(enemy, b))[0];
         if (nearestHero && getDistance(enemy, nearestHero) > (enemy.range || 55)) {
-          moveTowards(enemy, nearestHero, 45 * (enemy.speed || 1.0), dt);
+          moveTowards(enemy, nearestHero, 30 * (enemy.speed || 1.0), dt);
         }
       }
     });

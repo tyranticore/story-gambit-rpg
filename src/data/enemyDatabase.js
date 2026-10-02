@@ -2,13 +2,13 @@ export const ENEMIES = {
   goblin_scout: {
     id: 'goblin_scout',
     name: 'Goblin Scout',
-    maxHp: 160,
-    hp: 160,
-    maxMp: 50,
-    mp: 50,
-    attack: 28,
-    defense: 6,
-    speed: 1.6,
+    maxHp: 180,
+    hp: 180,
+    maxMp: 60,
+    mp: 60,
+    attack: 30,
+    defense: 8,
+    speed: 1.2,
     range: 55,
     flying: false,
     color: '#4ade80',
@@ -17,21 +17,21 @@ export const ENEMIES = {
     expReward: 50,
     goldReward: 30,
     gambits: [
-      { condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'HEAL_LIGHT' },
-      { condition: 'ALWAYS', target: 'ENEMY_LOWEST_HP', action: 'POISON_DART' },
-      { condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'eg_g1', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'HEAL_LIGHT' },
+      { id: 'eg_g2', enabled: true, condition: 'ALWAYS', target: 'ENEMY_LOWEST_HP', action: 'POISON_DART' },
+      { id: 'eg_g3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
     ]
   },
   skeleton_warrior: {
     id: 'skeleton_warrior',
     name: 'Skeletal Sentry',
-    maxHp: 240,
-    hp: 240,
-    maxMp: 60,
-    mp: 60,
-    attack: 34,
+    maxHp: 260,
+    hp: 260,
+    maxMp: 80,
+    mp: 80,
+    attack: 36,
     defense: 12,
-    speed: 1.3,
+    speed: 1.1,
     range: 55,
     flying: false,
     color: '#cbd5e1',
@@ -40,20 +40,20 @@ export const ENEMIES = {
     expReward: 80,
     goldReward: 50,
     gambits: [
-      { condition: 'ENEMY_ANY', target: 'ENEMY_NEAREST', action: 'LIGHTNING_BOLT' },
-      { condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'eg_s1', enabled: true, condition: 'ENEMY_ANY', target: 'ENEMY_NEAREST', action: 'LIGHTNING_BOLT' },
+      { id: 'eg_s2', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
     ]
   },
   harpy_hunter: {
     id: 'harpy_hunter',
     name: 'Harpy Sky-Hunter',
-    maxHp: 220,
-    hp: 220,
-    maxMp: 80,
-    mp: 80,
-    attack: 38,
-    defense: 8,
-    speed: 2.0,
+    maxHp: 240,
+    hp: 240,
+    maxMp: 90,
+    mp: 90,
+    attack: 40,
+    defense: 10,
+    speed: 1.4,
     range: 180,
     flying: true,
     color: '#c084fc',
@@ -62,21 +62,21 @@ export const ENEMIES = {
     expReward: 110,
     goldReward: 75,
     gambits: [
-      { condition: 'ALWAYS', target: 'ENEMY_ALL', action: 'FIREBALL' },
-      { condition: 'ALWAYS', target: 'ENEMY_LOWEST_HP', action: 'POISON_DART' },
-      { condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'eg_h1', enabled: true, condition: 'ALWAYS', target: 'ENEMY_ALL', action: 'FIREBALL' },
+      { id: 'eg_h2', enabled: true, condition: 'ALWAYS', target: 'ENEMY_LOWEST_HP', action: 'POISON_DART' },
+      { id: 'eg_h3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
     ]
   },
   iron_golem: {
     id: 'iron_golem',
     name: 'Obsidian Iron Golem',
-    maxHp: 550,
-    hp: 550,
-    maxMp: 60,
-    mp: 60,
-    attack: 52,
+    maxHp: 650,
+    hp: 650,
+    maxMp: 80,
+    mp: 80,
+    attack: 55,
     defense: 25,
-    speed: 1.1,
+    speed: 0.9,
     range: 65,
     flying: false,
     color: '#64748b',
@@ -85,20 +85,20 @@ export const ENEMIES = {
     expReward: 250,
     goldReward: 180,
     gambits: [
-      { condition: 'SELF_HP_BELOW_50', target: 'SELF', action: 'SHIELD_BLOCK' },
-      { condition: 'ALWAYS', target: 'ENEMY_HIGHEST_HP', action: 'ATTACK' }
+      { id: 'eg_i1', enabled: true, condition: 'SELF_HP_BELOW_50', target: 'SELF', action: 'SHIELD_BLOCK' },
+      { id: 'eg_i2', enabled: true, condition: 'ALWAYS', target: 'ENEMY_HIGHEST_HP', action: 'ATTACK' }
     ]
   },
   nether_dragon: {
     id: 'nether_dragon',
     name: 'Nether Dragon Lord',
-    maxHp: 1200,
-    hp: 1200,
-    maxMp: 200,
-    mp: 200,
-    attack: 75,
-    defense: 28,
-    speed: 1.5,
+    maxHp: 1400,
+    hp: 1400,
+    maxMp: 250,
+    mp: 250,
+    attack: 80,
+    defense: 30,
+    speed: 1.2,
     range: 220,
     flying: true,
     color: '#ef4444',
@@ -108,9 +108,9 @@ export const ENEMIES = {
     expReward: 800,
     goldReward: 600,
     gambits: [
-      { condition: 'ALWAYS', target: 'ENEMY_ALL', action: 'FIREBALL' },
-      { condition: 'ALWAYS', target: 'ENEMY_LOWEST_HP', action: 'LIGHTNING_BOLT' },
-      { condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'eg_d1', enabled: true, condition: 'ALWAYS', target: 'ENEMY_ALL', action: 'FIREBALL' },
+      { id: 'eg_d2', enabled: true, condition: 'ALWAYS', target: 'ENEMY_LOWEST_HP', action: 'LIGHTNING_BOLT' },
+      { id: 'eg_d3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
     ]
   }
 };
