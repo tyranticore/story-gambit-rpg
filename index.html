@@ -9,6 +9,33 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet">
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('GLOBAL DIAGNOSTIC CATCH:', e);
+        if (document.getElementById('debug-err-overlay')) return;
+        var div = document.createElement('div');
+        div.id = 'debug-err-overlay';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#090a0f;color:#f87171;padding:24px;z-index:999999;font-family:monospace;white-space:pre-wrap;overflow:auto;';
+        div.innerHTML = '<h2 style="color:#fcd34d;font-size:18px;margin-bottom:12px;">🚨 JavaScript Error Detected</h2>' +
+                        '<p style="color:#e2e8f0;margin-bottom:8px;"><b>Message:</b> ' + (e.message || e.reason || 'Script evaluation error') + '</p>' +
+                        '<p style="color:#94a3b8;margin-bottom:16px;"><b>Source:</b> ' + (e.filename || 'Unknown') + ':' + (e.lineno || '?') + '</p>' +
+                        '<pre style="background:#020617;padding:12px;border-radius:8px;border:1px solid #334155;color:#f87171;">' + (e.error ? (e.error.stack || e.error) : '') + '</pre>' +
+                        '<button onclick="localStorage.removeItem(\'STORY_GAMBIT_RPG_SAVE_V1\');window.location.reload();" style="margin-top:16px;padding:10px 16px;background:#d97706;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Reset Game Save & Reload</button>';
+        document.body ? document.body.appendChild(div) : window.addEventListener('DOMContentLoaded', function() { document.body.appendChild(div); });
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('UNHANDLED PROMISE REJECTION:', e.reason);
+        if (document.getElementById('debug-err-overlay')) return;
+        var div = document.createElement('div');
+        div.id = 'debug-err-overlay';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#090a0f;color:#f87171;padding:24px;z-index:999999;font-family:monospace;white-space:pre-wrap;overflow:auto;';
+        div.innerHTML = '<h2 style="color:#fcd34d;font-size:18px;margin-bottom:12px;">🚨 Unhandled Promise Rejection</h2>' +
+                        '<p style="color:#e2e8f0;margin-bottom:8px;"><b>Reason:</b> ' + (e.reason?.message || e.reason) + '</p>' +
+                        '<pre style="background:#020617;padding:12px;border-radius:8px;border:1px solid #334155;color:#f87171;">' + (e.reason?.stack || '') + '</pre>' +
+                        '<button onclick="localStorage.removeItem(\'STORY_GAMBIT_RPG_SAVE_V1\');window.location.reload();" style="margin-top:16px;padding:10px 16px;background:#d97706;color:#fff;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Reset Game Save & Reload</button>';
+        document.body ? document.body.appendChild(div) : window.addEventListener('DOMContentLoaded', function() { document.body.appendChild(div); });
+      });
+    </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased">
     <div id="root"></div>
