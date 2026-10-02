@@ -3,12 +3,12 @@ import { getFirestore } from 'firebase/firestore';
 
 // Default public Firebase Project Config for Aethelgard RPG GitHub Pages deployment
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyB-AethelgardRPG_DefaultKey_2026",
-  authDomain: "aethelgard-rpg.firebaseapp.com",
-  projectId: "aethelgard-rpg",
-  storageBucket: "aethelgard-rpg.appspot.com",
-  messagingSenderId: "987654321012",
-  appId: "1:987654321012:web:a1b2c3d4e5f6g7h8"
+  apiKey: "AIzaSyAlWdXjFAcVUFXCH8l0KWfmK5NkhLZpibU",
+  authDomain: "branching-gambit.firebaseapp.com",
+  projectId: "branching-gambit",
+  storageBucket: "branching-gambit.firebasestorage.app",
+  messagingSenderId: "438892842520",
+  appId: "1:438892842520:web:76b3abf887dd5aeb9c3d6d"
 };
 
 export function getFirebaseConfig() {
