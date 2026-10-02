@@ -22,16 +22,8 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
     { id: 'hero_select', label: 'Classes', fullLabel: 'Hero Classes', icon: UserCheck, action: () => onOpenHeroSelect() },
     { id: 'story', label: 'Story', fullLabel: 'Story', icon: BookOpen, action: () => setActiveTab('story') },
     { id: 'map', label: 'Map', fullLabel: 'Overland Map', icon: Map, action: () => setActiveTab('map') },
-    { id: 'gambits', label: 'Gambits', fullLabel: 'Gambits', icon: Zap, action: () => setActiveTab('gambits') },
-    { 
-      id: 'tavern', 
-      label: `Tavern (${followers ? followers.length : 0}/3)`, 
-      fullLabel: `Tavern (${followers ? followers.length : 0}/3)`, 
-      icon: isTavernAvailable ? Users : Lock, 
-      disabled: !isTavernAvailable,
-      action: () => isTavernAvailable && setActiveTab('tavern') 
-    },
-    { id: 'paperdoll', label: 'Paper Doll', fullLabel: 'Paper Doll Gear', icon: Backpack, action: () => setActiveTab('paperdoll') }
+    { id: 'party', label: `Party (${followers ? followers.length + 1 : 1}/4)`, fullLabel: `Party & Gear (${followers ? followers.length + 1 : 1}/4)`, icon: Users, action: () => setActiveTab('party') },
+    { id: 'gambits', label: 'Gambits', fullLabel: 'Gambits', icon: Zap, action: () => setActiveTab('gambits') }
   ];
 
   return (
@@ -115,7 +107,7 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
         </div>
 
         {/* ROW 3: Responsive Navigation Grid (Fits Mobile Width 100% With NO Side-Scrolling) */}
-        <nav className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-slate-900/90 border border-amber-500/20 p-1 rounded-xl shadow-inner w-full">
+        <nav className="grid grid-cols-5 gap-1 bg-slate-900/90 border border-amber-500/20 p-1 rounded-xl shadow-inner w-full">
           {navItems.map(item => {
             const IconComp = item.icon;
             const isActive = activeTab === item.id;
@@ -131,14 +123,14 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
                     item.action();
                   }
                 }}
-                className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center ${
+                className={`py-1.5 px-1 sm:px-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 text-center ${
                   isActive
                     ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-bold'
                     : isDisabled
                     ? 'bg-slate-950/60 text-slate-600 opacity-50 cursor-not-allowed border border-slate-900'
                     : 'text-slate-300 hover:text-amber-200 hover:bg-slate-800/60 border border-transparent'
                 }`}
-                title={isDisabled ? 'Tavern only available in Town locations' : item.fullLabel}
+                title={item.fullLabel}
               >
                 <IconComp className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{item.label}</span>

@@ -6,9 +6,8 @@ import GambitEditor from './components/GambitEditor';
 import BattleArena from './components/BattleArena';
 import SaveSyncModal from './components/SaveSyncModal';
 import HeroSelect from './components/HeroSelect';
-import PaperDollInventory from './components/PaperDollInventory';
-import TavernRecruit from './components/TavernRecruit';
-
+import PartyScreen from './components/PartyScreen';
+import { MAP_NODES } from './data/mapNodes';
 import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState } from './engine/saveManager';
 import { INITIAL_STORY } from './data/initialStory';
 import { HERO_CLASSES } from './data/heroClasses';
@@ -241,14 +240,16 @@ export default function App() {
   };
 
   // Battle Complete Callback
-  const handleBattleComplete = (isVictory) => {
+  const handleBattleComplete = (isVictory, outcome) => {
     if (!activeBattle) return;
     const { winPassageId } = activeBattle;
     setActiveBattle(null);
 
-    if (isVictory) {
+    if (isVictory === true) {
       setActiveTab('story');
       handleMakeChoice(winPassageId);
+    } else if (outcome === 'RETREATED' || isVictory === 'RETREATED') {
+      setActiveTab('map');
     } else {
       handleResetCampaign();
     }
@@ -289,8 +290,9 @@ export default function App() {
             onTriggerBattle={handleTriggerBattle}
             onOpenMap={() => setActiveTab('map')}
             onOpenGambits={() => setActiveTab('gambits')}
-            onOpenInventory={() => setActiveTab('paperdoll')}
-            onOpenTavern={() => setActiveTab('tavern')}
+            onOpenInventory={() => setActiveTab('party')}
+            onOpenTavern={() => setActiveTab('party')}
+            onOpenParty={() => setActiveTab('party')}
             onOpenSaveModal={() => setSaveModalOpen(true)}
             onResetCampaign={handleResetCampaign}
             onRecruitFollower={handleRecruitFollower}
@@ -312,23 +314,14 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'paperdoll' && (
-          <PaperDollInventory
-            playerStats={gameState.player}
-            followers={gameState.followers}
-            sharedBag={gameState.sharedBag}
+        {activeTab === 'party' && (
+          <PartyScreen
+            gameState={gameState}
+            currentMapNode={MAP_NODES.find(n => n.id === gameState.currentMapNodeId)}
             onEquipItemToChar={handleEquipItemToChar}
             onUnequipSlotFromChar={handleUnequipSlotFromChar}
-          />
-        )}
-
-        {activeTab === 'tavern' && (
-          <TavernRecruit
-            playerGold={gameState.player.gold}
-            followers={gameState.followers}
             onRecruitFollower={handleRecruitFollower}
             onDismissFollower={handleDismissFollower}
-            onClose={() => setActiveTab('story')}
           />
         )}
 

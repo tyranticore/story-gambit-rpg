@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Backpack, Shield, Zap, Sparkles, Coins, Plus, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
 import { audioManager } from '../engine/audioManager';
 
-const ITEM_CATALOG = {
+export const ITEM_CATALOG = {
   // Head
   iron_helm: { id: 'iron_helm', name: 'Iron Sallet Helm', slot: 'head', defense: 6, hp: 20 },
   shadow_cowl: { id: 'shadow_cowl', name: 'Shadow Cowl', slot: 'head', defense: 3, speed: 0.2 },

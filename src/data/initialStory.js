@@ -10,17 +10,13 @@ You sit at a weathered oak table, adjusting your sword belt. The Elder of Oakhav
 "The Nether Dragon has awakened in the Eastern Caldera," the Elder rasps, his knuckles white against his iron cane. "Its shadow grows longer each night. Goblins gather in the Whispering Woods, bandits control the River Crossing, and the Sunken Ruins flood with arcane corruption. Before stepping outside, recruit up to 3 Mercenary Followers in the Tavern!"`,
     choices: [
       {
-        text: 'Visit Tavern Mercenary Guild to recruit up to 3 Followers',
+        text: 'Visit Tavern & Party Screen (Recruit Followers & Hero Inventory)',
         action: 'OPEN_TAVERN'
       },
       {
         text: 'Open Overland Map to choose your adventure route',
         action: 'OPEN_MAP',
         effects: { unlockNode: 'whispering_woods', unlockNode2: 'river_crossing', unlockNode3: 'watchtower_ruins', unlockNode4: 'misty_shores' }
-      },
-      {
-        text: 'Inspect your Hero Paper Doll & Equipment Pouch',
-        action: 'OPEN_INVENTORY'
       }
     ]
   },
@@ -429,22 +425,12 @@ Click below to complete your campaign, reset your story state, and return to the
 
   p_defeat_retry: {
     id: 'p_defeat_retry',
-    title: 'Fallen in Battle...',
-    content: `Your party fell in combat! The protective spirit of Oakhaven revives you at camp with 50% HP.
-
-Review your Party Gambits or visit the Tavern to recruit mercenaries before retrying!`,
+    title: 'THE PARTY DIED. EVIL HAS TRIUMPHED.',
+    content: `Your hero and companions were slain in combat. Darkness spreads across Aethelgard. Evil has won. You must start over fresh with a new character.`,
     choices: [
       {
-        text: 'Open Party Gambits Editor',
-        action: 'OPEN_GAMBIT_EDITOR'
-      },
-      {
-        text: 'Visit Tavern to recruit Followers',
-        action: 'OPEN_TAVERN'
-      },
-      {
-        text: 'Open Overland Map to explore another region',
-        action: 'OPEN_MAP'
+        text: '💀 Start Over Fresh as a New Character',
+        action: 'RESET_CAMPAIGN'
       }
     ]
   }
