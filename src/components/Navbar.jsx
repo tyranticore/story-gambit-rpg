@@ -39,28 +39,36 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
             </div>
           </button>
 
-          {/* Quick Stats Pill */}
-          <div className="hidden md:flex items-center gap-2.5 bg-slate-900/80 border border-slate-800 rounded-full px-3 py-1 text-xs">
+          {/* Quick Stats Pill - Responsive for Mobile & Desktop */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 bg-slate-900/90 border border-amber-500/30 rounded-full px-2.5 py-1 text-[11px] sm:text-xs shadow-inner">
             <button
               onClick={() => { audioManager.playClick(); onOpenHeroSelect(); }}
-              className="flex items-center gap-1 text-amber-300 font-bold hover:underline"
+              className="hidden sm:flex items-center gap-1 text-amber-300 font-bold hover:underline shrink-0"
               title="Click to open Hero Class Selection"
             >
               <UserCheck className="w-3.5 h-3.5 text-amber-400" />
               <span>{player.name} ({player.classId || 'Hero'})</span>
             </button>
-            <div className="w-px h-3 bg-slate-700" />
-            <div className="flex items-center gap-1 text-emerald-400 font-semibold">
-              <Shield className="w-3.5 h-3.5" />
+            <div className="hidden sm:block w-px h-3 bg-slate-700" />
+            
+            {/* HP Status */}
+            <div className="flex items-center gap-1 text-emerald-400 font-bold font-mono">
+              <Shield className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>HP {player.hp}/{player.maxHp}</span>
             </div>
-            <div className="w-px h-3 bg-slate-700" />
-            <div className="flex items-center gap-1 text-blue-400 font-semibold">
-              <Zap className="w-3.5 h-3.5" />
+
+            <div className="w-px h-3 bg-slate-700/80" />
+
+            {/* MP Status */}
+            <div className="flex items-center gap-1 text-blue-400 font-bold font-mono">
+              <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
               <span>MP {player.mp}/{player.maxMp}</span>
             </div>
-            <div className="w-px h-3 bg-slate-700" />
-            <div className="text-amber-300 font-bold">
+
+            <div className="w-px h-3 bg-slate-700/80" />
+
+            {/* Gold Status */}
+            <div className="text-amber-300 font-bold font-mono whitespace-nowrap">
               💰 {player.gold}g
             </div>
           </div>
