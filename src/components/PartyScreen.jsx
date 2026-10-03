@@ -126,9 +126,11 @@ export default function PartyScreen({
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: npc.color }}
+                  <img
+                    src={`/assets/portraits/${npc.classId || 'warrior'}_portrait.png`}
+                    alt={npc.name}
+                    className="w-7 h-7 rounded-lg object-cover border border-amber-500/40 shrink-0"
+                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                   <div>
                     <h5 className="text-xs font-bold">{npc.name}</h5>
@@ -269,9 +271,12 @@ export default function PartyScreen({
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400 flex items-center justify-center font-bold text-amber-300 text-xs shrink-0 shadow-inner">
-                👑
-              </div>
+              <img
+                src={`/assets/portraits/${player.classId || 'warrior'}_portrait.png`}
+                alt="Leader Portrait"
+                className="w-9 h-9 rounded-lg object-cover border border-amber-400 shadow-md shrink-0"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
               <div className="truncate">
                 <span className="text-[10px] font-bold text-amber-400 uppercase block">Leader</span>
                 <h4 className="text-xs font-bold text-slate-100 truncate">{player.name || 'Hero'}</h4>
@@ -303,12 +308,12 @@ export default function PartyScreen({
                   }`}
                 >
                   <div className="flex items-center gap-3 truncate">
-                    <div
-                      className="w-8 h-8 rounded-lg border flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-inner"
-                      style={{ backgroundColor: `${follower.color || '#3b82f6'}40`, borderColor: follower.color || '#3b82f6' }}
-                    >
-                      🛡️
-                    </div>
+                    <img
+                      src={`/assets/portraits/${follower.classId || 'warrior'}_portrait.png`}
+                      alt={follower.name}
+                      className="w-9 h-9 rounded-lg object-cover border border-amber-500/40 shadow-md shrink-0"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
                     <div className="truncate">
                       <span className="text-[10px] font-mono text-emerald-400 block font-bold">Follower #{slotIdx + 1}</span>
                       <h4 className="text-xs font-bold text-slate-100 truncate">{follower.name}</h4>

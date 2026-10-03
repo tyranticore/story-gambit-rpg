@@ -85,6 +85,19 @@ export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
         </p>
       </div>
 
+      {/* Featured Single Hero Showcase Banner Artwork */}
+      <div className="fantasy-panel p-2 overflow-hidden border-amber-500/40 relative shadow-2xl rounded-2xl max-w-4xl mx-auto group">
+        <img
+          src="/assets/showcase/hero_showcase_banner.webp"
+          alt="Aethelgard Heroes Showcase"
+          className="w-full h-48 sm:h-72 object-cover rounded-xl shadow-lg border border-slate-800/80 group-hover:scale-[1.01] transition-transform duration-300"
+          onError={(e) => { e.target.style.display = 'none'; }}
+        />
+        <div className="absolute bottom-4 left-6 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-lg border border-amber-500/30 text-amber-300 text-xs font-bold font-serif">
+          ⚔️ Champions of Aethelgard
+        </div>
+      </div>
+
       {/* Landing Mode Selector Buttons (START NEW vs LOAD SAVE) */}
       <div className="flex justify-center gap-3 max-w-md mx-auto bg-slate-950 p-1.5 rounded-2xl border border-amber-500/30 shadow-xl">
         <button
@@ -140,32 +153,32 @@ export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
                 <button
                   key={hero.id}
                   onClick={() => { audioManager.playClick(); setSelectedClassId(hero.id); }}
-                  className={`p-4 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between h-44 relative overflow-hidden group ${
+                  className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between h-48 relative overflow-hidden group ${
                     isSelected
                       ? 'bg-gradient-to-b from-amber-500/20 to-slate-900 border-amber-400 shadow-xl shadow-amber-500/10 scale-105'
                       : 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40 hover:bg-slate-800/80'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md"
-                      style={{ backgroundColor: hero.avatarColor }}
-                    >
-                      <IconComp className="w-5 h-5" />
-                    </div>
+                    <img
+                      src={`/assets/portraits/${hero.id}_portrait.png`}
+                      alt={hero.name}
+                      className="w-10 h-10 rounded-xl object-cover border border-amber-500/40 shadow-md"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
                     {isSelected && <CheckCircle className="w-5 h-5 text-amber-400 animate-pulse" />}
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold font-serif text-amber-100 group-hover:text-amber-300">
+                    <h3 className="text-xs font-bold font-serif text-amber-100 group-hover:text-amber-300">
                       {hero.name}
                     </h3>
-                    <p className="text-[10px] text-slate-400 leading-tight line-clamp-2 mt-1">
+                    <p className="text-[10px] text-slate-400 leading-tight line-clamp-2 mt-0.5">
                       {hero.role}
                     </p>
                   </div>
 
-                  <div className="text-[10px] font-mono text-emerald-400 font-semibold border-t border-slate-800/60 pt-1.5 flex justify-between">
+                  <div className="text-[10px] font-mono text-emerald-400 font-semibold border-t border-slate-800/60 pt-1 flex justify-between">
                     <span>HP {hero.baseStats.maxHp}</span>
                     <span>ATK {hero.baseStats.attack}</span>
                   </div>
@@ -178,12 +191,12 @@ export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
           <div className="fantasy-panel p-6 border-amber-500/40 grid grid-cols-1 md:grid-cols-3 gap-6 shadow-2xl">
             <div className="md:col-span-2 space-y-4">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg"
-                  style={{ backgroundColor: selectedClass.avatarColor }}
-                >
-                  {React.createElement(ICON_MAP[selectedClass.badgeIcon] || Shield, { className: 'w-6 h-6' })}
-                </div>
+                <img
+                  src={`/assets/portraits/${selectedClass.id}_portrait.png`}
+                  alt={selectedClass.name}
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-xl"
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
                 <div>
                   <h3 className="text-2xl font-bold font-serif text-amber-100">{selectedClass.name}</h3>
                   <p className="text-xs text-amber-400 font-semibold">{selectedClass.role}</p>

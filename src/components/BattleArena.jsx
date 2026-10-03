@@ -16,9 +16,35 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
   const canvasRef = useRef(null);
   const fleeTimerRef = useRef(0);
   const cameraRef = useRef({ x: 0, y: 0 });
+  const loadedSpritesRef = useRef({});
 
   // Environmental Obstacles per Map
   const obstaclesRef = useRef(getArenaObstacles(encounterKey));
+
+  useEffect(() => {
+    const spritePaths = {
+      warrior: '/assets/sprites/warrior_sprite.png',
+      thief: '/assets/sprites/thief_sprite.png',
+      rogue: '/assets/sprites/thief_sprite.png',
+      archer: '/assets/sprites/archer_sprite.png',
+      mage: '/assets/sprites/mage_sprite.png',
+      priest: '/assets/sprites/priest_sprite.png',
+      paladin: '/assets/sprites/cleric_sprite.png',
+      goblin_scout: '/assets/sprites/goblin_scout_sprite.png',
+      skeleton_warrior: '/assets/sprites/skeletal_sentry_sprite.png',
+      harpy_hunter: '/assets/sprites/harpy_hunter_sprite.png',
+      iron_golem: '/assets/sprites/iron_golem_sprite.png',
+      nether_dragon: '/assets/sprites/nether_dragon_sprite.png'
+    };
+
+    Object.entries(spritePaths).forEach(([key, src]) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        loadedSpritesRef.current[key] = img;
+      };
+    });
+  }, []);
 
   // Assemble full 4-unit Hero Party with balanced 1.6x HP scaling for ~20-30s battles!
   const heroesRef = useRef([
@@ -583,30 +609,36 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(hero.x, hero.y, hero.size * 0.5 + 4, 0, Math.PI * 2);
+        ctx.arc(hero.x, hero.y, hero.size * 0.75, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      ctx.fillStyle = hero.color || '#d4af37';
-      ctx.beginPath();
-      ctx.arc(hero.x, hero.y, hero.size * 0.5, 0, Math.PI * 2);
-      ctx.fill();
+      const spriteImg = loadedSpritesRef.current[hero.classId || 'warrior'];
+      if (spriteImg) {
+        const renderDim = (hero.size || 34) * 1.6;
+        ctx.drawImage(spriteImg, hero.x - renderDim * 0.5, hero.y - renderDim * 0.5, renderDim, renderDim);
+      } else {
+        ctx.fillStyle = hero.color || '#d4af37';
+        ctx.beginPath();
+        ctx.arc(hero.x, hero.y, hero.size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
 
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(hero.name.split(' ')[0], hero.x, hero.y - hero.size * 0.5 - 12);
+      ctx.fillText(hero.name.split(' ')[0], hero.x, hero.y - hero.size * 0.7 - 10);
 
       // HP Bar
       const hpPct = Math.max(0, hero.hp / hero.maxHp);
       ctx.fillStyle = '#020617';
-      ctx.fillRect(hero.x - 20, hero.y - hero.size * 0.5 - 8, 40, 5);
+      ctx.fillRect(hero.x - 20, hero.y - hero.size * 0.7 - 6, 40, 5);
       ctx.fillStyle = hpPct > 0.4 ? '#10b981' : '#ef4444';
-      ctx.fillRect(hero.x - 20, hero.y - hero.size * 0.5 - 8, 40 * hpPct, 5);
+      ctx.fillRect(hero.x - 20, hero.y - hero.size * 0.7 - 6, 40 * hpPct, 5);
     });
 
     // 7. Render Enemies
@@ -617,30 +649,37 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size * 0.5 + 4, 0, Math.PI * 2);
+        ctx.arc(enemy.x, enemy.y, enemy.size * 0.75, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      ctx.fillStyle = enemy.color || '#ef4444';
-      ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y, enemy.size * 0.5, 0, Math.PI * 2);
-      ctx.fill();
+      const enemySpriteKey = enemy.id || 'goblin_scout';
+      const spriteImg = loadedSpritesRef.current[enemySpriteKey];
+      if (spriteImg) {
+        const renderDim = (enemy.size || 32) * 1.6;
+        ctx.drawImage(spriteImg, enemy.x - renderDim * 0.5, enemy.y - renderDim * 0.5, renderDim, renderDim);
+      } else {
+        ctx.fillStyle = enemy.color || '#ef4444';
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, enemy.size * 0.5, 0, Math.PI * 2);
+        ctx.fill();
 
-      ctx.strokeStyle = '#dc2626';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
 
       ctx.fillStyle = '#f87171';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(enemy.name, enemy.x, enemy.y - enemy.size * 0.5 - 12);
+      ctx.fillText(enemy.name, enemy.x, enemy.y - enemy.size * 0.7 - 10);
 
       // HP Bar
       const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
       ctx.fillStyle = '#020617';
-      ctx.fillRect(enemy.x - 20, enemy.y - enemy.size * 0.5 - 8, 40, 5);
+      ctx.fillRect(enemy.x - 20, enemy.y - enemy.size * 0.7 - 6, 40, 5);
       ctx.fillStyle = hpPct > 0.4 ? '#ef4444' : '#b91c1c';
-      ctx.fillRect(enemy.x - 20, enemy.y - enemy.size * 0.5 - 8, 40 * hpPct, 5);
+      ctx.fillRect(enemy.x - 20, enemy.y - enemy.size * 0.7 - 6, 40 * hpPct, 5);
     });
 
     // 8. Render Floating Texts
