@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { RECRUITABLE_NPCS } from '../data/heroClasses';
 import { ITEM_CATALOG } from './PaperDollInventory';
 import { GAMBIT_ACTIONS } from '../data/defaultGambits';
+import { Users, UserPlus, Shield, Coins, Sparkles, X, Heart, Flame, Backpack, Zap, Lock, MapPin, Check, ChevronRight } from 'lucide-react';
+import { audioManager } from '../engine/audioManager';
+
 const getPortraitPath = (id) => {
   const normalized = (id || 'warrior').toLowerCase();
   if (normalized === 'priest') return '/assets/portraits/healer_portrait.png';
