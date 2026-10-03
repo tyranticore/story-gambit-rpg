@@ -13,6 +13,13 @@ const ICON_MAP = {
   Sun
 };
 
+const getPortraitPath = (id) => {
+  const normalized = (id || 'warrior').toLowerCase();
+  if (normalized === 'priest') return '/assets/portraits/healer_portrait.png';
+  if (normalized === 'paladin') return '/assets/portraits/cleric_portrait.png';
+  return `/assets/portraits/${normalized}_portrait.png`;
+};
+
 export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
   const [mode, setMode] = useState('new'); // 'new' or 'load'
   const [selectedClassId, setSelectedClassId] = useState('warrior');
@@ -90,7 +97,7 @@ export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
         <img
           src="/assets/showcase/hero_showcase_banner.webp"
           alt="Aethelgard Heroes Showcase"
-          className="w-full h-48 sm:h-72 object-cover rounded-xl shadow-lg border border-slate-800/80 group-hover:scale-[1.01] transition-transform duration-300"
+          className="w-full h-48 sm:h-72 md:h-96 lg:h-[420px] object-cover object-[center_top] rounded-xl shadow-lg border border-slate-800/80 group-hover:scale-[1.01] transition-transform duration-300"
           onError={(e) => { e.target.style.display = 'none'; }}
         />
         <div className="absolute bottom-4 left-6 bg-slate-950/80 backdrop-blur-md px-3 py-1 rounded-lg border border-amber-500/30 text-amber-300 text-xs font-bold font-serif">
@@ -161,7 +168,7 @@ export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <img
-                      src={`/assets/portraits/${hero.id}_portrait.png`}
+                      src={getPortraitPath(hero.id)}
                       alt={hero.name}
                       className="w-10 h-10 rounded-xl object-cover border border-amber-500/40 shadow-md"
                       onError={(e) => { e.target.style.display = 'none'; }}
@@ -192,7 +199,7 @@ export default function HeroSelect({ onSelectHero, onLoadSaveState }) {
             <div className="md:col-span-2 space-y-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={`/assets/portraits/${selectedClass.id}_portrait.png`}
+                  src={getPortraitPath(selectedClass.id)}
                   alt={selectedClass.name}
                   className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-xl"
                   onError={(e) => { e.target.style.display = 'none'; }}

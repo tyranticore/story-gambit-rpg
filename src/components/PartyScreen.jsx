@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { RECRUITABLE_NPCS } from '../data/heroClasses';
 import { ITEM_CATALOG } from './PaperDollInventory';
 import { GAMBIT_ACTIONS } from '../data/defaultGambits';
-import { Users, UserPlus, Shield, Coins, Sparkles, X, Heart, Flame, Backpack, Zap, Lock, MapPin, Check, ChevronRight } from 'lucide-react';
-import { audioManager } from '../engine/audioManager';
+const getPortraitPath = (id) => {
+  const normalized = (id || 'warrior').toLowerCase();
+  if (normalized === 'priest') return '/assets/portraits/healer_portrait.png';
+  if (normalized === 'paladin') return '/assets/portraits/cleric_portrait.png';
+  return `/assets/portraits/${normalized}_portrait.png`;
+};
 
 export default function PartyScreen({
   gameState,
@@ -127,7 +131,7 @@ export default function PartyScreen({
               >
                 <div className="flex items-center gap-2.5">
                   <img
-                    src={`/assets/portraits/${npc.classId || 'warrior'}_portrait.png`}
+                    src={getPortraitPath(npc.classId)}
                     alt={npc.name}
                     className="w-7 h-7 rounded-lg object-cover border border-amber-500/40 shrink-0"
                     onError={(e) => { e.target.style.display = 'none'; }}
@@ -272,7 +276,7 @@ export default function PartyScreen({
           >
             <div className="flex items-center gap-3">
               <img
-                src={`/assets/portraits/${player.classId || 'warrior'}_portrait.png`}
+                src={getPortraitPath(player.classId)}
                 alt="Leader Portrait"
                 className="w-9 h-9 rounded-lg object-cover border border-amber-400 shadow-md shrink-0"
                 onError={(e) => { e.target.style.display = 'none'; }}
@@ -309,7 +313,7 @@ export default function PartyScreen({
                 >
                   <div className="flex items-center gap-3 truncate">
                     <img
-                      src={`/assets/portraits/${follower.classId || 'warrior'}_portrait.png`}
+                      src={getPortraitPath(follower.classId)}
                       alt={follower.name}
                       className="w-9 h-9 rounded-lg object-cover border border-amber-500/40 shadow-md shrink-0"
                       onError={(e) => { e.target.style.display = 'none'; }}
