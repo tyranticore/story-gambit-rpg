@@ -11,6 +11,7 @@ import { MAP_NODES } from './data/mapNodes';
 import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState } from './engine/saveManager';
 import { INITIAL_STORY } from './data/initialStory';
 import { HERO_CLASSES } from './data/heroClasses';
+import { GAME_VERSION } from './version';
 
 export default function App() {
   const [gameState, setGameState] = useState(() => {
@@ -347,8 +348,12 @@ export default function App() {
       )}
 
       {/* Footer Branding */}
-      <footer className="py-4 border-t border-slate-900 text-center text-xs text-slate-500">
-        <p>Aethelgard CYOA Gambit Auto-Battler • Party System & Shared Bag Inventory</p>
+      <footer className="py-4 border-t border-slate-900 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+        <span>Aethelgard CYOA Gambit Auto-Battler</span>
+        <span className="text-amber-500/40">•</span>
+        <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold shadow-inner">
+          {GAME_VERSION}
+        </span>
       </footer>
     </div>
   );
