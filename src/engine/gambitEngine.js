@@ -62,6 +62,12 @@ function evaluateTarget(actor, conditionId, targetId, allies, enemies) {
     case 'ALLY_HP_BELOW_40':
       conditionPassed = aliveAllies.some(a => (a.hp / a.maxHp) < 0.4);
       break;
+    case 'HEALER_ATTACKED':
+      conditionPassed = aliveEnemies.some(e => {
+        const targetHero = aliveAllies.find(a => a.id === e.currentTargetId);
+        return targetHero && (targetHero.classId === 'healer' || targetHero.classId === 'mage' || targetHero.classId === 'archer');
+      });
+      break;
     case 'ENEMY_ANY':
       conditionPassed = aliveEnemies.length > 0;
       break;
@@ -89,6 +95,15 @@ function evaluateTarget(actor, conditionId, targetId, allies, enemies) {
       return actor;
     case 'ALLY_MOST_HURT':
       return [...aliveAllies].sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] || actor;
+    case 'ALLY_TANK':
+      return aliveAllies.find(a => a.classId === 'warrior' || a.classId === 'cleric') || aliveAllies[0];
+    case 'ENEMY_ATTACKING_HEALER': {
+      const threatEnemy = aliveEnemies.find(e => {
+        const tHero = aliveAllies.find(a => a.id === e.currentTargetId);
+        return tHero && (tHero.classId === 'healer' || tHero.classId === 'mage' || tHero.classId === 'archer');
+      });
+      return threatEnemy || [...aliveEnemies].sort((a, b) => getDistance(actor, a) - getDistance(actor, b))[0];
+    }
     case 'ENEMY_NEAREST':
       return [...aliveEnemies].sort((a, b) => getDistance(actor, a) - getDistance(actor, b))[0];
     case 'ENEMY_LOWEST_HP':

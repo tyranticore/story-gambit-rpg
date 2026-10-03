@@ -1,6 +1,7 @@
 export const ENEMIES = {
   goblin_scout: {
     id: 'goblin_scout',
+    unitTypeId: 'goblin_scout',
     name: 'Goblin Scout',
     maxHp: 160,
     hp: 160,
@@ -24,6 +25,7 @@ export const ENEMIES = {
   },
   skeleton_warrior: {
     id: 'skeleton_warrior',
+    unitTypeId: 'skeleton_warrior',
     name: 'Skeletal Sentry',
     maxHp: 220,
     hp: 220,
@@ -46,6 +48,7 @@ export const ENEMIES = {
   },
   harpy_hunter: {
     id: 'harpy_hunter',
+    unitTypeId: 'harpy_hunter',
     name: 'Harpy Sky-Hunter',
     maxHp: 200,
     hp: 200,
@@ -69,6 +72,7 @@ export const ENEMIES = {
   },
   iron_golem: {
     id: 'iron_golem',
+    unitTypeId: 'iron_golem',
     name: 'Obsidian Iron Golem',
     maxHp: 500,
     hp: 500,
@@ -91,6 +95,7 @@ export const ENEMIES = {
   },
   nether_dragon: {
     id: 'nether_dragon',
+    unitTypeId: 'nether_dragon',
     name: 'Nether Dragon Lord',
     maxHp: 1100,
     hp: 1100,

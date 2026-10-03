@@ -5,6 +5,13 @@ import { audioManager } from '../engine/audioManager';
 import { Play, Pause, Swords, Shield, Zap, Trophy, Skull, RefreshCw, Footprints, ShieldAlert, EyeOff, TreePine, Mountain } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+const getPortraitPath = (id) => {
+  const normalized = (id || 'warrior').toLowerCase();
+  if (normalized === 'priest') return '/assets/portraits/healer_portrait.png';
+  if (normalized === 'paladin') return '/assets/portraits/cleric_portrait.png';
+  return `/assets/portraits/${normalized}_portrait.png`;
+};
+
 export default function BattleArena({ encounterKey, playerStats, playerGambits, followers, onBattleComplete }) {
   const encounter = ENCOUNTERS[encounterKey] || ENCOUNTERS.goblin_patrol;
 
@@ -12,6 +19,16 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
   const [battleStance, setBattleStance] = useState('BALANCED'); // AGGRESSIVE, BALANCED, DEFENSIVE, STEALTH, FLEE
   const [speed, setSpeed] = useState(0.75); // 0.5x, 0.75x, 1.0x, 1.5x
   const [combatLogs, setCombatLogs] = useState([]);
+  const [hudTick, setHudTick] = useState(0);
+
+  // Live HUD refresh interval for real-time cooldown animation
+  useEffect(() => {
+    if (battleState !== 'RUNNING') return;
+    const interval = setInterval(() => {
+      setHudTick(t => t + 1);
+    }, 250);
+    return () => clearInterval(interval);
+  }, [battleState]);
 
   const canvasRef = useRef(null);
   const fleeTimerRef = useRef(0);
@@ -20,6 +37,56 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
   // Environmental Obstacles per Map
   const obstaclesRef = useRef(getArenaObstacles(encounterKey));
+
+function makeSpriteTransparent(img) {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const imgData = ctx.getImageData(0, 0, img.width, img.height);
+    const data = imgData.data;
+
+    // Sample top-left corner pixel color
+    const bgR = data[0];
+    const bgG = data[1];
+    const bgB = data[2];
+    const bgA = data[3];
+
+    // If top-left pixel is already fully transparent, return original image
+    if (bgA < 15) return img;
+
+    const tolerance = 42;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+
+      if (a < 15) continue;
+
+      const dist = Math.sqrt(
+        (r - bgR) * (r - bgR) +
+        (g - bgG) * (g - bgG) +
+        (b - bgB) * (b - bgB)
+      );
+
+      const isNearWhite = r > 235 && g > 235 && b > 235;
+
+      if (dist < tolerance || isNearWhite) {
+        data[i + 3] = 0; // Set alpha to transparent
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas;
+  } catch (err) {
+    return img;
+  }
+}
 
   useEffect(() => {
     const spritePaths = {
@@ -43,7 +110,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       const img = new Image();
       img.src = src;
       img.onload = () => {
-        loadedSpritesRef.current[key] = img;
+        loadedSpritesRef.current[key] = makeSpriteTransparent(img);
       };
     });
   }, []);
@@ -246,7 +313,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       });
     }
 
-    // 3. Update Enemies (Movement + Gambits)
+    // 3. Update Enemies (Threat / Aggro AI Target Selection)
     aliveEnemies.forEach(enemy => {
       if (enemy.mp < enemy.maxMp) enemy.mp = Math.min(enemy.maxMp, enemy.mp + 5 * dt);
 
@@ -255,22 +322,23 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         return;
       }
 
-      const decision = evaluateGambits(enemy, aliveEnemies, aliveHeroes);
-      if (decision) {
-        const { target, actionDef } = decision;
-        const dist = getDistance(enemy, target);
-        const effectiveRange = actionDef.id === 'ATTACK' ? (enemy.range || 55) : 180;
+      // Determine top threat target from enemy threat table
+      const targetHero = getTopThreatTarget(enemy, aliveHeroes);
+      if (!targetHero) return;
 
-        if (dist > effectiveRange) {
-          moveTowards(enemy, target, 32 * (enemy.speed || 1.0), dt);
-        } else {
-          executeAction(enemy, target, actionDef, false);
-          enemy.cooldowns[actionDef.id] = now + (actionDef.cooldown * 1000) / speed;
-        }
+      const decision = evaluateGambits(enemy, aliveEnemies, aliveHeroes);
+      const target = (decision && decision.target) ? decision.target : targetHero;
+      const actionDef = (decision && decision.actionDef) ? decision.actionDef : { id: 'ATTACK', mpCost: 0, cooldown: 1.4 };
+
+      const dist = getDistance(enemy, target);
+      const effectiveRange = actionDef.id === 'ATTACK' ? (enemy.range || 55) : 180;
+
+      if (dist > effectiveRange) {
+        moveTowards(enemy, target, 32 * (enemy.speed || 1.0), dt);
       } else {
-        const nearestHero = [...aliveHeroes].sort((a, b) => getDistance(enemy, a) - getDistance(enemy, b))[0];
-        if (nearestHero && getDistance(enemy, nearestHero) > (enemy.range || 55)) {
-          moveTowards(enemy, nearestHero, 32 * (enemy.speed || 1.0), dt);
+        if (!enemy.cooldowns[actionDef.id] || enemy.cooldowns[actionDef.id] <= now) {
+          executeAction(enemy, target, actionDef, false);
+          enemy.cooldowns[actionDef.id] = now + ((actionDef.cooldown || 1.4) * 1000) / speed;
         }
       }
     });
@@ -360,9 +428,10 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       return p.life > 0;
     });
 
-    // 9. Update Floating Combat Texts
+    // 9. Update Outward Floating Combat Texts
     floatingTextsRef.current = floatingTextsRef.current.filter(ft => {
-      ft.y -= 20 * dt;
+      ft.x += (ft.vx || 0) * dt;
+      ft.y += (ft.vy || -20) * dt;
       ft.life -= dt;
       return ft.life > 0;
     });
@@ -384,6 +453,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
   const executeAction = (attacker, target, actionDef, isHero) => {
     attacker.mp = Math.max(0, attacker.mp - actionDef.mpCost);
+    const aliveEnemies = enemiesRef.current.filter(e => e.hp > 0);
 
     if (actionDef.id === 'ATTACK') {
       attacker.x += (target.x > attacker.x ? 8 : -8);
@@ -391,7 +461,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       const defStat = (target.defense || 0) + (isHero && battleStance === 'DEFENSIVE' ? 15 : 0);
       const baseDmg = Math.max(2, attacker.attack - defStat * 0.4);
 
-      // Balanced damage multipliers for ideal ~20-30s battle duration!
+      // Balanced damage multipliers
       const stanceMult = isHero ? (battleStance === 'AGGRESSIVE' ? 0.48 : 0.38) : (battleStance === 'DEFENSIVE' ? 0.18 : 0.28);
       const rawDmg = baseDmg * stanceMult;
       const isCrit = Math.random() < 0.2;
@@ -404,13 +474,44 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
         audioManager.playSlash();
         addFloatingText(target.x, target.y - 20, `-${dmg}${isCrit ? ' CRIT!' : ''}`, isCrit ? '#f59e0b' : '#ef4444');
         addLog(`⚔️ ${attacker.name} hit ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
+        addThreat(target, attacker, dmg);
       } else {
+        attacker.currentTargetId = target.id;
         audioManager.playMonsterHit();
         addFloatingText(target.x, target.y - 20, `🩸 -${dmg}${isCrit ? ' CRIT!' : ''}`, '#f87171');
         addLog(`🩸 MONSTER ATTACK: ${attacker.name} struck ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       }
 
       spawnParticles(target.x, target.y, isHero ? '#ef4444' : '#dc2626', 10);
+    } else if (actionDef.id === 'TAUNT') {
+      audioManager.playSlash();
+      addFloatingText(attacker.x, attacker.y - 20, `📢 TAUNT!`, '#ef4444');
+      addLog(`📢 TAUNT SHOUT! ${attacker.name} issued a challenge! Nearby monsters forced to attack!`);
+
+      aliveEnemies.forEach(enemy => {
+        if (getDistance(attacker, enemy) <= 240) {
+          if (!enemy.threatTable) enemy.threatTable = {};
+          const maxOther = Math.max(...Object.values(enemy.threatTable), 50);
+          enemy.threatTable[attacker.id] = maxOther + 300;
+          enemy.currentTargetId = attacker.id;
+          addFloatingText(enemy.x, enemy.y - 20, `😠 AGGRO!`, '#ef4444');
+        }
+      });
+    } else if (actionDef.id === 'HOLY_SMITE') {
+      attacker.x += (target.x > attacker.x ? 8 : -8);
+      const defStat = target.defense || 0;
+      const rawDmg = Math.max(3, attacker.attack * 1.35 - defStat * 0.4);
+      const stanceMult = isHero ? (battleStance === 'AGGRESSIVE' ? 1.25 : 1.0) : 1.0;
+      const dmg = Math.round(rawDmg * stanceMult);
+
+      target.hp = Math.max(0, target.hp - dmg);
+      target.hitTimer = 0.25;
+
+      audioManager.playSlash();
+      addFloatingText(target.x, target.y - 20, `🔨 -${dmg} SMITE!`, '#f59e0b');
+      addLog(`🔨 HOLY SMITE: ${attacker.name} struck ${target.name} with holy hammer for ${dmg} DMG!`);
+      addThreat(target, attacker, dmg + 160);
+      spawnParticles(target.x, target.y, '#f59e0b', 14);
     } else if (actionDef.id === 'FIREBALL') {
       spawnProjectile(attacker, target, 'fireball', '#f97316');
       audioManager.playFireball();
@@ -427,12 +528,16 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       addFloatingText(target.x, target.y - 20, `+${healAmt} HP`, '#10b981');
       addLog(`✨ ${attacker.name} healed ${target.name} for +${healAmt} HP! (${target.name} HP: ${target.hp}/${target.maxHp})`);
       spawnParticles(target.x, target.y, '#34d399', 12);
+
+      // Healer generates threat across active enemies
+      aliveEnemies.forEach(e => addThreat(e, attacker, healAmt * 0.35));
     } else if (actionDef.id === 'POISON_DART') {
       spawnProjectile(attacker, target, 'poison', '#a855f7');
       addLog(`☣️ ${attacker.name} shot Poison Dart at ${target.name}!`);
     } else if (actionDef.id === 'SHIELD_BLOCK') {
       addFloatingText(attacker.x, attacker.y - 20, `🛡️ SHIELD WALL`, '#fbbf24');
       addLog(`🛡️ ${attacker.name} activated Shield Defense!`);
+      aliveEnemies.forEach(e => addThreat(e, attacker, 100));
     }
   };
 
@@ -470,6 +575,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       target.hitTimer = 0.3;
       addFloatingText(target.x, target.y - 20, `💥 -${dmg}`, '#f97316');
       addLog(`${prefix} Fireball blasted ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
+      if (isHeroAttacker) addThreat(target, attacker, dmg);
       spawnParticles(target.x, target.y, '#f97316', 16);
     } else if (type === 'lightning') {
       const dmg = Math.max(1, Math.round(52 * stanceScale));
@@ -477,6 +583,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       target.hitTimer = 0.3;
       addFloatingText(target.x, target.y - 20, `⚡ -${dmg}`, '#60a5fa');
       addLog(`${prefix} Lightning struck ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
+      if (isHeroAttacker) addThreat(target, attacker, dmg);
       spawnParticles(target.x, target.y, '#60a5fa', 18);
     } else if (type === 'poison') {
       const dmg = Math.max(1, Math.round(20 * stanceScale));
@@ -484,12 +591,87 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       target.hitTimer = 0.3;
       addFloatingText(target.x, target.y - 20, `☣️ -${dmg}`, '#c084fc');
       addLog(`${prefix} Poison Dart hit ${target.name} for ${dmg} DMG! (${target.name} HP: ${target.hp}/${target.maxHp})`);
+      if (isHeroAttacker) addThreat(target, attacker, dmg);
       spawnParticles(target.x, target.y, '#a855f7', 10);
     }
   };
 
-  const addFloatingText = (x, y, text, color) => {
-    floatingTextsRef.current.push({ x, y, text, color, life: 1.4 });
+  const addFloatingText = (targetX, targetY, text, color) => {
+    const aliveUnits = [...heroesRef.current, ...enemiesRef.current].filter(u => u.hp > 0);
+    let centerX = 320;
+    let centerY = 200;
+    if (aliveUnits.length > 0) {
+      centerX = aliveUnits.reduce((sum, u) => sum + u.x, 0) / aliveUnits.length;
+      centerY = aliveUnits.reduce((sum, u) => sum + u.y, 0) / aliveUnits.length;
+    }
+
+    let dx = targetX - centerX;
+    let dy = targetY - centerY;
+    let len = Math.sqrt(dx * dx + dy * dy);
+
+    let dirX = len > 5 ? dx / len : (targetX < 320 ? -0.85 : 0.85);
+    let dirY = len > 5 ? dy / len : -0.5;
+
+    const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+    dirX /= dirLen;
+    dirY /= dirLen;
+
+    // Initial offset: 48px outward away from combat center
+    const startX = Math.max(25, Math.min(615, targetX + dirX * 48));
+    const startY = Math.max(25, Math.min(375, targetY + dirY * 48 - 10));
+
+    floatingTextsRef.current.push({
+      x: startX,
+      y: startY,
+      targetX,
+      targetY,
+      vx: dirX * 26,
+      vy: dirY * 16 - 15,
+      text,
+      color,
+      life: 1.3,
+      maxLife: 1.3
+    });
+  };
+
+  const addThreat = (enemy, hero, amount) => {
+    if (!enemy || !hero || enemy.hp <= 0 || hero.hp <= 0) return;
+    if (!enemy.threatTable) enemy.threatTable = {};
+
+    let threatMult = 1.0;
+    if (hero.classId === 'warrior') threatMult = 2.2;
+    if (hero.classId === 'cleric') threatMult = 1.7;
+    if (hero.classId === 'mage' || hero.classId === 'archer') threatMult = 1.0;
+    if (hero.classId === 'thief') threatMult = 0.75;
+    if (hero.classId === 'healer') threatMult = 0.5;
+
+    const added = Math.round(amount * threatMult);
+    enemy.threatTable[hero.id] = (enemy.threatTable[hero.id] || 0) + added;
+  };
+
+  const getTopThreatTarget = (enemy, aliveHeroes) => {
+    if (!aliveHeroes || aliveHeroes.length === 0) return null;
+    if (!enemy.threatTable) enemy.threatTable = {};
+
+    let topHero = null;
+    let maxThreat = -1;
+
+    aliveHeroes.forEach(hero => {
+      const threatVal = enemy.threatTable[hero.id] || 0;
+      if (threatVal > maxThreat) {
+        maxThreat = threatVal;
+        topHero = hero;
+      }
+    });
+
+    if (!topHero || maxThreat <= 0) {
+      // Default to tank if available, otherwise nearest hero
+      const tank = aliveHeroes.find(h => h.classId === 'warrior' || h.classId === 'cleric');
+      topHero = tank || [...aliveHeroes].sort((a, b) => getDistance(enemy, a) - getDistance(enemy, b))[0];
+    }
+
+    enemy.currentTargetId = topHero ? topHero.id : null;
+    return topHero;
   };
 
   const spawnParticles = (x, y, color, count) => {
@@ -603,93 +785,141 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
       ctx.fill();
     });
 
-    // 6. Render Heroes
-    heroesRef.current.forEach(hero => {
-      if (hero.hp <= 0) return;
+    // 6. Collect Living Units for Depth-Sorted Rendering Pass
+    const livingHeroes = heroesRef.current.filter(h => h.hp > 0).map(u => ({ ...u, isHero: true }));
+    const livingEnemies = enemiesRef.current.filter(e => e.hp > 0).map(u => ({ ...u, isHero: false }));
+    const allLivingUnits = [...livingHeroes, ...livingEnemies].sort((a, b) => a.y - b.y);
 
-      if (hero.hitTimer > 0) {
+    // Pass 1: Render Unit Sprites (Sorted top-to-bottom Y depth)
+    allLivingUnits.forEach(unit => {
+      // Hit flash ring
+      if (unit.hitTimer > 0) {
         ctx.strokeStyle = '#ef4444';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(hero.x, hero.y, hero.size * 0.75, 0, Math.PI * 2);
+        ctx.arc(unit.x, unit.y, (unit.size || 30) * 0.75, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      const spriteImg = loadedSpritesRef.current[hero.classId || 'warrior'];
-      if (spriteImg) {
-        const renderDim = (hero.size || 34) * 1.6;
-        ctx.drawImage(spriteImg, hero.x - renderDim * 0.5, hero.y - renderDim * 0.5, renderDim, renderDim);
+      if (unit.isHero) {
+        const spriteImg = loadedSpritesRef.current[unit.classId || 'warrior'];
+        if (spriteImg) {
+          const renderDim = (unit.size || 34) * 1.6;
+          ctx.drawImage(spriteImg, unit.x - renderDim * 0.5, unit.y - renderDim * 0.5, renderDim, renderDim);
+        } else {
+          ctx.fillStyle = unit.color || '#d4af37';
+          ctx.beginPath();
+          ctx.arc(unit.x, unit.y, (unit.size || 34) * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       } else {
-        ctx.fillStyle = hero.color || '#d4af37';
-        ctx.beginPath();
-        ctx.arc(hero.x, hero.y, hero.size * 0.5, 0, Math.PI * 2);
-        ctx.fill();
+        const enemySpriteKey = unit.unitTypeId || unit.enemyTypeId || (unit.id ? unit.id.replace(/_\d+$/, '') : '') || 'goblin_scout';
+        const spriteImg = loadedSpritesRef.current[enemySpriteKey];
+        if (spriteImg) {
+          const renderDim = (unit.size || 32) * 1.6;
+          ctx.drawImage(spriteImg, unit.x - renderDim * 0.5, unit.y - renderDim * 0.5, renderDim, renderDim);
+        } else {
+          ctx.fillStyle = unit.color || '#ef4444';
+          ctx.beginPath();
+          ctx.arc(unit.x, unit.y, (unit.size || 32) * 0.5, 0, Math.PI * 2);
+          ctx.fill();
 
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       }
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(hero.name.split(' ')[0], hero.x, hero.y - hero.size * 0.7 - 10);
-
-      // HP Bar
-      const hpPct = Math.max(0, hero.hp / hero.maxHp);
-      ctx.fillStyle = '#020617';
-      ctx.fillRect(hero.x - 20, hero.y - hero.size * 0.7 - 6, 40, 5);
-      ctx.fillStyle = hpPct > 0.4 ? '#10b981' : '#ef4444';
-      ctx.fillRect(hero.x - 20, hero.y - hero.size * 0.7 - 6, 40 * hpPct, 5);
     });
 
-    // 7. Render Enemies
-    enemiesRef.current.forEach(enemy => {
-      if (enemy.hp <= 0) return;
+    // Pass 2: Render Top-Level UI Overlays (Names & Health Bars ON TOP OF ALL SPRITES)
+    allLivingUnits.forEach(unit => {
+      const renderDim = (unit.size || 32) * 1.6;
+      // Position HP bar cleanly above the sprite bounds
+      const barY = unit.y - renderDim * 0.5 - 12;
 
-      if (enemy.hitTimer > 0) {
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size * 0.75, 0, Math.PI * 2);
-        ctx.stroke();
+      // Enemy Live Aggro Target Badge
+      if (!unit.isHero && unit.currentTargetId) {
+        const targetedHero = heroesRef.current.find(h => h.id === unit.currentTargetId);
+        if (targetedHero && targetedHero.hp > 0) {
+          const isTank = targetedHero.classId === 'warrior' || targetedHero.classId === 'cleric';
+          ctx.fillStyle = isTank ? '#34d399' : '#f87171';
+          ctx.font = 'bold 9px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(isTank ? `🛡️ Aggro: ${targetedHero.name.split(' ')[0]}` : `⚠️ AGGRO: ${targetedHero.name.split(' ')[0]}`, unit.x, barY - 15);
+        }
       }
 
-      const enemySpriteKey = enemy.id || 'goblin_scout';
-      const spriteImg = loadedSpritesRef.current[enemySpriteKey];
-      if (spriteImg) {
-        const renderDim = (enemy.size || 32) * 1.6;
-        ctx.drawImage(spriteImg, enemy.x - renderDim * 0.5, enemy.y - renderDim * 0.5, renderDim, renderDim);
-      } else {
-        ctx.fillStyle = enemy.color || '#ef4444';
-        ctx.beginPath();
-        ctx.arc(enemy.x, enemy.y, enemy.size * 0.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#dc2626';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = '#f87171';
+      // Unit Name Label
+      ctx.fillStyle = unit.isHero ? '#ffffff' : '#f87171';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(enemy.name, enemy.x, enemy.y - enemy.size * 0.7 - 10);
+      const displayName = unit.isHero ? (unit.name ? unit.name.split(' ')[0] : 'Hero') : unit.name;
+      ctx.fillText(displayName, unit.x, barY - 4);
 
-      // HP Bar
-      const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
+      // HP Bar Box & Border
+      const hpPct = Math.max(0, unit.hp / unit.maxHp);
       ctx.fillStyle = '#020617';
-      ctx.fillRect(enemy.x - 20, enemy.y - enemy.size * 0.7 - 6, 40, 5);
-      ctx.fillStyle = hpPct > 0.4 ? '#ef4444' : '#b91c1c';
-      ctx.fillRect(enemy.x - 20, enemy.y - enemy.size * 0.7 - 6, 40 * hpPct, 5);
+      ctx.fillRect(unit.x - 22, barY, 44, 6);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(unit.x - 22, barY, 44, 6);
+
+      // HP Bar Fill
+      const barColor = unit.isHero
+        ? (hpPct > 0.4 ? '#10b981' : hpPct > 0.2 ? '#f59e0b' : '#ef4444')
+        : (hpPct > 0.4 ? '#ef4444' : '#b91c1c');
+      ctx.fillStyle = barColor;
+      ctx.fillRect(unit.x - 21, barY + 1, 42 * hpPct, 4);
     });
 
-    // 8. Render Floating Texts
+    // 8. Render Outward Floating Combat Texts with Directional Pointers & Badges
     floatingTextsRef.current.forEach(ft => {
+      const alpha = Math.min(1.0, ft.life / 0.4);
+      ctx.globalAlpha = Math.max(0, alpha);
+
+      // Subtle dashed directional line from text badge back to target unit
+      if (ft.targetX !== undefined && ft.targetY !== undefined) {
+        ctx.strokeStyle = ft.color || '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(ft.x, ft.y);
+        ctx.lineTo(ft.targetX, ft.targetY);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset line dash
+      }
+
+      // Text Badge Frame
+      ctx.font = 'bold 11px sans-serif';
+      const textMetrics = ctx.measureText(ft.text);
+      const textWidth = textMetrics.width;
+      const padX = 6;
+      const padY = 3;
+      const boxW = textWidth + padX * 2;
+      const boxH = 16;
+      const boxX = ft.x - boxW * 0.5;
+      const boxY = ft.y - boxH * 0.5;
+
+      // Dark background pill
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+
+      // Border outline
+      ctx.strokeStyle = ft.color || '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+      // Text Label
       ctx.fillStyle = ft.color || '#ffffff';
-      ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText(ft.text, ft.x, ft.y);
+
+      ctx.globalAlpha = 1.0;
     });
 
     ctx.restore();
@@ -817,87 +1047,183 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
       {/* 2D Canvas Arena & Live Action Ticker Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Canvas Arena (2 Cols) */}
-        <div className="lg:col-span-2 fantasy-panel p-2 flex justify-center items-center relative overflow-hidden bg-slate-950">
-          <canvas
-            ref={canvasRef}
-            width={640}
-            height={400}
-            className="w-full h-auto rounded-lg border border-slate-800"
-          />
+        {/* Left Area (Canvas Arena + Desktop Party Live HUD) */}
+        <div className="lg:col-span-2 space-y-3">
+          <div className="fantasy-panel p-2 flex justify-center items-center relative overflow-hidden bg-slate-950">
+            <canvas
+              ref={canvasRef}
+              width={640}
+              height={400}
+              className="w-full h-auto rounded-lg border border-slate-800"
+            />
 
-          {/* Victory Overlay */}
-          {battleState === 'VICTORY' && (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
-              <Trophy className="w-16 h-16 text-amber-400 mb-2 animate-bounce" />
-              <h3 className="text-3xl font-bold font-serif text-amber-200 mb-2">VICTORY IS YOURS!</h3>
-              <p className="text-sm text-slate-300 mb-6">Your party team defeated all enemies!</p>
-              <button
-                onClick={() => onBattleComplete(true)}
-                className="fantasy-button-gold px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl"
-              >
-                Return to Campaign
-              </button>
-            </div>
-          )}
-
-          {/* Defeat Overlay - Total Party Wipeout */}
-          {battleState === 'DEFEAT' && (
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 space-y-4 animate-fade-in">
-              <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/40 flex items-center justify-center text-red-500 mx-auto animate-pulse shadow-xl">
-                <Skull className="w-10 h-10" />
-              </div>
-              <div className="space-y-1.5 max-w-md">
-                <h3 className="text-2xl sm:text-3xl font-bold font-serif text-red-400 tracking-wide">
-                  THE PARTY DIED. EVIL HAS TRIUMPHED.
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-300">
-                  Your hero and companions were slain in battle. Darkness spreads across Aethelgard. You must start over fresh with a new character.
-                </p>
-              </div>
-
-              <div className="pt-3 w-full max-w-xs">
+            {/* Victory Overlay */}
+            {battleState === 'VICTORY' && (
+              <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30">
+                <Trophy className="w-16 h-16 text-amber-400 mb-2 animate-bounce" />
+                <h3 className="text-3xl font-bold font-serif text-amber-200 mb-2">VICTORY IS YOURS!</h3>
+                <p className="text-sm text-slate-300 mb-6">Your party team defeated all enemies!</p>
                 <button
-                  onClick={() => onBattleComplete(false)}
-                  className="w-full fantasy-button-crimson py-3 px-6 rounded-xl font-bold text-sm shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                  onClick={() => onBattleComplete(true)}
+                  className="fantasy-button-gold px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl"
                 >
-                  <RefreshCw className="w-4 h-4 animate-spin-slow" />
-                  <span>Start Over as a New Hero</span>
+                  Return to Campaign
                 </button>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Retreat / Fled Overlay */}
-          {battleState === 'RETREATED' && (
-            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 space-y-4 animate-fade-in">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto shadow-xl">
-                <Footprints className="w-10 h-10" />
-              </div>
-              <div className="space-y-1.5 max-w-md">
-                <h3 className="text-2xl sm:text-3xl font-bold font-serif text-emerald-300 tracking-wide">
-                  PARTY RETREATED SAFELY!
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-300">
-                  Your hero and companions fell back to safety and escaped from the battlefield to live and fight another day!
-                </p>
-              </div>
+            {/* Defeat Overlay - Total Party Wipeout */}
+            {battleState === 'DEFEAT' && (
+              <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 space-y-4 animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/40 flex items-center justify-center text-red-500 mx-auto animate-pulse shadow-xl">
+                  <Skull className="w-10 h-10" />
+                </div>
+                <div className="space-y-1.5 max-w-md">
+                  <h3 className="text-2xl sm:text-3xl font-bold font-serif text-red-400 tracking-wide">
+                    THE PARTY DIED. EVIL HAS TRIUMPHED.
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300">
+                    Your hero and companions were slain in battle. Darkness spreads across Aethelgard. You must start over fresh with a new character.
+                  </p>
+                </div>
 
-              <div className="pt-3 w-full max-w-xs">
-                <button
-                  onClick={() => onBattleComplete(false, 'RETREATED')}
-                  className="w-full fantasy-button-gold py-3 px-6 rounded-xl font-bold text-sm shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                <div className="pt-3 w-full max-w-xs">
+                  <button
+                    onClick={() => onBattleComplete(false)}
+                    className="w-full fantasy-button-crimson py-3 px-6 rounded-xl font-bold text-sm shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4 animate-spin-slow" />
+                    <span>Start Over as a New Hero</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Retreat / Fled Overlay */}
+            {battleState === 'RETREATED' && (
+              <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 space-y-4 animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 mx-auto shadow-xl">
+                  <Footprints className="w-10 h-10" />
+                </div>
+                <div className="space-y-1.5 max-w-md">
+                  <h3 className="text-2xl sm:text-3xl font-bold font-serif text-emerald-300 tracking-wide">
+                    PARTY RETREATED SAFELY!
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300">
+                    Your hero and companions fell back to safety and escaped from the battlefield to live and fight another day!
+                  </p>
+                </div>
+
+                <div className="pt-3 w-full max-w-xs">
+                  <button
+                    onClick={() => onBattleComplete(false, 'RETREATED')}
+                    className="w-full fantasy-button-gold py-3 px-6 rounded-xl font-bold text-sm shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Footprints className="w-4 h-4" />
+                    <span>Return to Overland Map</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* DESKTOP-ONLY LIVE PARTY COMBAT STATUS HUD */}
+          <div className="hidden lg:grid grid-cols-4 gap-3">
+            {heroesRef.current.map((hero) => {
+              const isAlive = hero.hp > 0;
+              const hpPct = Math.max(0, hero.hp / hero.maxHp);
+              const mpPct = Math.max(0, hero.mp / hero.maxMp);
+              const portraitPath = getPortraitPath(hero.classId);
+              const now = Date.now();
+
+              return (
+                <div
+                  key={hero.id}
+                  className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
+                    isAlive
+                      ? 'bg-slate-950/90 border-amber-500/30 shadow-lg'
+                      : 'bg-slate-950/60 border-red-900/40 opacity-50 grayscale'
+                  }`}
                 >
-                  <Footprints className="w-4 h-4" />
-                  <span>Return to Overland Map</span>
-                </button>
-              </div>
-            </div>
-          )}
+                  {/* Header: Portrait + Name + Role */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <img
+                      src={portraitPath}
+                      alt={hero.name}
+                      className="w-9 h-9 rounded-lg object-cover border border-amber-500/40 shrink-0"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <div className="truncate">
+                      <h4 className="text-xs font-bold text-slate-100 truncate">{hero.name}</h4>
+                      <span className="text-[10px] text-amber-400 uppercase font-mono block">{hero.classId}</span>
+                    </div>
+                  </div>
+
+                  {/* HP & MP Progress Bars */}
+                  <div className="space-y-1.5 text-[10px] font-mono mb-2">
+                    <div>
+                      <div className="flex justify-between text-slate-300">
+                        <span>HP</span>
+                        <span className={hpPct > 0.4 ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                          {hero.hp}/{hero.maxHp}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            hpPct > 0.4 ? 'bg-emerald-500' : hpPct > 0.2 ? 'bg-amber-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${hpPct * 100}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-slate-300">
+                        <span>MP</span>
+                        <span className="text-blue-400 font-bold">{Math.round(hero.mp)}/{hero.maxMp}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div
+                          className="h-full bg-blue-500 transition-all duration-300"
+                          style={{ width: `${mpPct * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skill Cooldown Progress Bars */}
+                  <div className="border-t border-slate-800/80 pt-2 space-y-1">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Skill Cooldowns:</span>
+                    {(hero.gambits || []).slice(0, 3).map((g, idx) => {
+                      const cooldownEndTime = hero.cooldowns?.[g.action] || 0;
+                      const isReady = now >= cooldownEndTime;
+                      const actionName = g.action.replace('_', ' ');
+
+                      return (
+                        <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
+                          <span className="text-slate-300 truncate max-w-[80px]">{actionName}</span>
+                          {isReady ? (
+                            <span className="text-emerald-400 font-bold bg-emerald-500/10 px-1 rounded border border-emerald-500/30">
+                              READY
+                            </span>
+                          ) : (
+                            <span className="text-amber-400 font-bold bg-amber-500/10 px-1 rounded border border-amber-500/30 animate-pulse">
+                              RECHARGING
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Combat Ticker Logs */}
-        <div className="fantasy-panel p-4 flex flex-col h-[400px] bg-slate-950">
+        {/* Combat Ticker Logs (Matches bottom of player info cards on Desktop) */}
+        <div className="fantasy-panel p-4 flex flex-col h-[400px] lg:h-[582px] bg-slate-950 shadow-xl">
           <div className="flex items-center justify-between border-b border-amber-500/20 pb-2 mb-3">
             <h3 className="text-xs font-bold font-serif text-amber-200 flex items-center gap-1.5 uppercase tracking-wider">
               <Zap className="w-4 h-4 text-amber-400" />

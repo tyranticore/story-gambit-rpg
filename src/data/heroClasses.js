@@ -2,11 +2,11 @@ export const HERO_CLASSES = {
   warrior: {
     id: 'warrior',
     name: 'Ironclad Warrior',
-    role: 'Frontline Tank & Melee Bruiser',
-    description: 'Heavy armor master who charges into melee, taunting foes and absorbing damage for the party.',
+    role: 'Frontline Tank & Aggro Master',
+    description: 'Heavy armor master who charges into melee, taunting foes and drawing threat away from squishy allies.',
     avatarColor: '#b45309',
     badgeIcon: 'Shield',
-    baseStats: { maxHp: 160, hp: 160, maxMp: 40, mp: 40, attack: 28, defense: 14, speed: 0.9, range: 55 },
+    baseStats: { maxHp: 170, hp: 170, maxMp: 40, mp: 40, attack: 28, defense: 14, speed: 0.9, range: 55 },
     defaultPaperDoll: {
       head: 'iron_helm',
       shoulders: 'iron_pauldrons',
@@ -20,9 +20,10 @@ export const HERO_CLASSES = {
       offhand: 'tower_shield'
     },
     starterGambits: [
-      { id: 'g_w1', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'SHIELD_BLOCK' },
-      { id: 'g_w2', enabled: true, condition: 'ENEMY_CLOSE', target: 'ENEMY_NEAREST', action: 'ATTACK' },
-      { id: 'g_w3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'g_w1', enabled: true, condition: 'HEALER_ATTACKED', target: 'ENEMY_ATTACKING_HEALER', action: 'TAUNT' },
+      { id: 'g_w2', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'SHIELD_BLOCK' },
+      { id: 'g_w3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'TAUNT' },
+      { id: 'g_w4', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
     ]
   },
   thief: {
@@ -54,8 +55,8 @@ export const HERO_CLASSES = {
   archer: {
     id: 'archer',
     name: 'Sylvan Archer',
-    role: 'Long-Range Sniper & Air Counter',
-    description: 'Expert marksman positioning in the backline, raining arrows on flying and high-priority targets.',
+    role: 'Long-Range Backline Sniper',
+    description: 'Expert marksman positioning in the backline, raining arrows on flying and high-priority targets from safety.',
     avatarColor: '#16a34a',
     badgeIcon: 'Crosshair',
     baseStats: { maxHp: 105, hp: 105, maxMp: 60, mp: 60, attack: 30, defense: 7, speed: 1.4, range: 220 },
@@ -80,7 +81,7 @@ export const HERO_CLASSES = {
   mage: {
     id: 'mage',
     name: 'Arcane Mage',
-    role: 'Area Burst Spellcaster',
+    role: 'Area Burst Backline Spellcaster',
     description: 'Wielder of destruction who stands back to blast enemy clusters with Fireballs and Lightning Bolts.',
     avatarColor: '#3b82f6',
     badgeIcon: 'Sparkles',
@@ -106,11 +107,11 @@ export const HERO_CLASSES = {
   healer: {
     id: 'healer',
     name: 'Sanctuary Healer',
-    role: 'Party Medic & Life Sustain',
-    description: 'Devoted healer who stays protected in the rear guard, restoring ally HP and granting defensive shields.',
+    role: 'Backline Medic & Party Sustain',
+    description: 'Devoted healer who stays protected in the rear guard, prioritizing party heals to keep frontline tanks alive.',
     avatarColor: '#10b981',
     badgeIcon: 'Heart',
-    baseStats: { maxHp: 115, hp: 115, maxMp: 110, mp: 110, attack: 18, defense: 8, speed: 1.0, range: 160 },
+    baseStats: { maxHp: 115, hp: 115, maxMp: 110, mp: 110, attack: 18, defense: 8, speed: 1.0, range: 180 },
     defaultPaperDoll: {
       head: 'circlet_of_life',
       shoulders: null,
@@ -126,17 +127,18 @@ export const HERO_CLASSES = {
     starterGambits: [
       { id: 'g_h1', enabled: true, condition: 'ALLY_HP_BELOW_40', target: 'ALLY_MOST_HURT', action: 'HEAL_LIGHT' },
       { id: 'g_h2', enabled: true, condition: 'SELF_HP_BELOW_50', target: 'SELF', action: 'HEAL_LIGHT' },
-      { id: 'g_h3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'g_h3', enabled: true, condition: 'ALWAYS', target: 'ALLY_TANK', action: 'HEAL_LIGHT' },
+      { id: 'g_h4', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
     ]
   },
   cleric: {
     id: 'cleric',
     name: 'Holy Cleric',
-    role: 'Hybrid Support & Frontline Paladin',
-    description: 'Sturdy holy knight capable of holding the front line while healing wounded party allies.',
+    role: 'Frontline Hybrid Tank & Paladin',
+    description: 'Sturdy holy knight wielding heavy maces and warhammers, holding the frontline while casting holy heals.',
     avatarColor: '#f59e0b',
     badgeIcon: 'Sun',
-    baseStats: { maxHp: 140, hp: 140, maxMp: 80, mp: 80, attack: 25, defense: 12, speed: 1.0, range: 60 },
+    baseStats: { maxHp: 150, hp: 150, maxMp: 80, mp: 80, attack: 26, defense: 12, speed: 1.0, range: 60 },
     defaultPaperDoll: {
       head: 'blessed_sallet',
       shoulders: 'cleric_pauldrons',
@@ -151,8 +153,9 @@ export const HERO_CLASSES = {
     },
     starterGambits: [
       { id: 'g_c1', enabled: true, condition: 'ALLY_HP_BELOW_40', target: 'ALLY_MOST_HURT', action: 'HEAL_LIGHT' },
-      { id: 'g_c2', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'SHIELD_BLOCK' },
-      { id: 'g_c3', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'ATTACK' }
+      { id: 'g_c2', enabled: true, condition: 'HEALER_ATTACKED', target: 'ENEMY_ATTACKING_HEALER', action: 'HOLY_SMITE' },
+      { id: 'g_c3', enabled: true, condition: 'SELF_HP_BELOW_30', target: 'SELF', action: 'SHIELD_BLOCK' },
+      { id: 'g_c4', enabled: true, condition: 'ALWAYS', target: 'ENEMY_NEAREST', action: 'HOLY_SMITE' }
     ]
   }
 };
