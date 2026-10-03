@@ -1,31 +1,29 @@
 import React from 'react';
 import { INITIAL_STORY } from '../data/initialStory';
 import { MAP_NODES } from '../data/mapNodes';
-import { WANDERING_HEROES } from '../data/heroClasses';
-import { Swords, MapPin, ChevronRight, Zap, Sparkles, RefreshCw, Trophy, Users, UserPlus, Coins, Shield, Dices } from 'lucide-react';
+import { Swords, MapPin, ChevronRight, Zap, Sparkles, RefreshCw, Trophy, Users, UserPlus, Shield, Clock, CheckCircle, Gift } from 'lucide-react';
 import { audioManager } from '../engine/audioManager';
 
-export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, onOpenMap, onOpenGambits, onOpenInventory, onOpenTavern, onOpenSaveModal, onResetCampaign, onRecruitFollower }) {
-  const currentPassage = INITIAL_STORY[gameState.currentPassageId] || INITIAL_STORY.p_oakhaven_start;
+export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, onOpenMap, onOpenGambits, onOpenInventory, onOpenTavern, onOpenSaveModal, onResetCampaign, onRecruitWanderingHero }) {
+  const effectivePassageId = (gameState.currentMapNodeId === 'oakhaven' && gameState.storyFlags?.oakhaven_intro_done)
+    ? 'p_oakhaven_return'
+    : gameState.currentPassageId;
+
+  const currentPassage = INITIAL_STORY[effectivePassageId] || INITIAL_STORY.p_oakhaven_start;
   const currentMapNode = MAP_NODES.find(n => n.id === currentPassage.mapNodeId);
 
   const followers = gameState.followers || [];
   const needsMoreFollowers = followers.length < 3;
-  const isTownNode = currentMapNode ? currentMapNode.hasTavern : false;
+  const completedBattles = gameState.completedBattles || [];
+  const claimedRewards = gameState.claimedRewards || [];
 
-  // Random Encounter Logic: ~50% chance per non-town passage when party < 3 followers
-  let wanderingNpc = null;
-  if (needsMoreFollowers && !isTownNode) {
-    const passageHash = (gameState.currentPassageId || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const encounterTriggered = (passageHash % 100) < 50;
+  const isBattleCleared = currentMapNode && completedBattles.includes(currentMapNode.id);
+  const isRewardClaimed = (currentPassage && claimedRewards.includes(currentPassage.id)) || (currentMapNode && claimedRewards.includes(currentMapNode.id));
 
-    if (encounterTriggered) {
-      const unrecruitedWanderers = WANDERING_HEROES.filter(hero => !followers.some(f => f.id === hero.id));
-      if (unrecruitedWanderers.length > 0) {
-        wanderingNpc = unrecruitedWanderers[passageHash % unrecruitedWanderers.length];
-      }
-    }
-  }
+  // Check if a wandering hero is currently resting at this map node
+  const wanderingHeroAtNode = currentMapNode
+    ? (gameState.wanderingHeroes || []).find(h => h.nodeId === currentMapNode.id && !followers.some(f => f.id === h.id))
+    : null;
 
   const handleChoiceClick = (choice) => {
     audioManager.playClick();
@@ -33,6 +31,12 @@ export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, on
     if (choice.action === 'RESET_CAMPAIGN') {
       audioManager.playVictory();
       onResetCampaign();
+      return;
+    }
+
+    // If battle at this node has already been won, override triggerBattle!
+    if (choice.triggerBattle && isBattleCleared) {
+      onOpenMap();
       return;
     }
 
@@ -76,12 +80,12 @@ export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, on
     }
   };
 
-  const handleHireWanderingHero = (npc) => {
-    if (gameState.player.gold < npc.cost) return;
+  const handleHireWanderingHero = (hero) => {
+    if (gameState.player.gold < hero.cost || followers.length >= 3) return;
     audioManager.playClick();
     audioManager.playVictory();
-    if (onRecruitFollower) {
-      onRecruitFollower(npc);
+    if (onRecruitWanderingHero) {
+      onRecruitWanderingHero(hero);
     }
   };
 
@@ -99,9 +103,21 @@ export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, on
             <span>{currentMapNode ? currentMapNode.name : 'Unknown Location'}</span>
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-slate-400">
+          {isBattleCleared ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30 font-mono">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Area Cleared & Peaceful</span>
+            </div>
+          ) : isRewardClaimed ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 font-mono">
+              <Gift className="w-3.5 h-3.5 text-amber-400" />
+              <span>Reward Claimed</span>
+            </div>
+          ) : null}
+
+          <div className="flex items-center gap-1 text-xs text-slate-400 font-mono">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Chapter Passage #{gameState.currentPassageId}</span>
+            <span>Turn #{gameState.turnCounter || 0}</span>
           </div>
         </div>
 
@@ -112,48 +128,68 @@ export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, on
 
         {/* Story Text Body */}
         <div className="prose prose-invert max-w-none text-slate-200 text-base leading-relaxed whitespace-pre-line space-y-4 mb-8 font-sans">
-          {currentPassage.content}
+          {isBattleCleared
+            ? `${currentPassage.content}\n\n🛡️ [Area Status]: You have already defeated the hostile forces in this region. The area remains quiet and peaceful.`
+            : isRewardClaimed
+            ? `${currentPassage.content}\n\n🎁 [Reward Status]: You have already collected the treasures and blessings at this location.`
+            : currentPassage.content}
         </div>
 
-        {/* Wandering Heroes Random Encounter (If Party < 3 Followers & Non-Town Node) */}
-        {needsMoreFollowers && wanderingNpc && (
-          <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-950 border border-amber-500/50 shadow-xl space-y-3 animate-fade-in">
-            <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
+        {/* Dynamic Wandering Hero Encounter Panel (If hero is resting at this node) */}
+        {wanderingHeroAtNode && (
+          <div className="mb-6 p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border border-amber-500/40 shadow-2xl space-y-3 animate-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/20 pb-2.5">
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-amber-300">
-                <Dices className="w-4 h-4 text-amber-400 animate-spin-slow" />
-                <span>🎲 Random Encounter: Wandering Road Mercenary (Party: {followers.length}/3 Followers)</span>
+                <Users className="w-4 h-4 text-amber-400 animate-pulse" />
+                <span>👤 Wandering Adventurer Encountered!</span>
               </div>
-              <span className="text-xs font-mono font-bold text-amber-400">💰 Stipend: {wanderingNpc.cost}g</span>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className="text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-400" />
+                  <span>Stays for {wanderingHeroAtNode.turnsRemaining} more turns</span>
+                </span>
+                <span className="text-emerald-400 font-bold">💰 Cost: {wanderingHeroAtNode.cost}g</span>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2 font-serif">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: wanderingNpc.color }} />
-                  <span>{wanderingNpc.name}</span>
-                  <span className="text-xs text-amber-400 font-semibold uppercase">({wanderingNpc.classId})</span>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-amber-100 font-serif flex items-center gap-2">
+                  <span>{wanderingHeroAtNode.name}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 border border-amber-500/30 text-amber-400 uppercase font-mono font-semibold">
+                    {wanderingHeroAtNode.classId}
+                  </span>
                 </h4>
-                <p className="text-xs text-slate-300 italic mt-1 max-w-xl font-sans leading-relaxed">
-                  {wanderingNpc.dialogue}
+                <p className="text-xs text-slate-300 italic max-w-xl font-sans leading-relaxed">
+                  "{wanderingHeroAtNode.quote}"
+                </p>
+                <p className="text-[11px] text-slate-400 leading-normal">
+                  {wanderingHeroAtNode.description}
                 </p>
               </div>
 
-              <button
-                disabled={gameState.player.gold < wanderingNpc.cost}
-                onClick={() => handleHireWanderingHero(wanderingNpc)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 ${
-                  gameState.player.gold >= wanderingNpc.cost
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md hover:scale-105'
-                    : 'bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed'
-                }`}
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>
-                  {gameState.player.gold >= wanderingNpc.cost
-                    ? `Offer Stipend & Hire (${wanderingNpc.cost}g)`
-                    : `Need ${wanderingNpc.cost}g Stipend`}
-                </span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {needsMoreFollowers ? (
+                  <button
+                    disabled={gameState.player.gold < wanderingHeroAtNode.cost}
+                    onClick={() => handleHireWanderingHero(wanderingHeroAtNode)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-md ${
+                      gameState.player.gold >= wanderingHeroAtNode.cost
+                        ? 'fantasy-button-gold hover:scale-105'
+                        : 'bg-slate-900 text-slate-600 border border-slate-800 cursor-not-allowed'
+                    }`}
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    <span>
+                      {gameState.player.gold >= wanderingHeroAtNode.cost
+                        ? `Recruit ${wanderingHeroAtNode.name} (${wanderingHeroAtNode.cost}g)`
+                        : `Need ${wanderingHeroAtNode.cost}g Gold`}
+                    </span>
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400 font-mono italic">Party Full (Max 3 Followers)</span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -166,49 +202,79 @@ export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, on
           </h3>
 
           <div className="grid gap-3">
-            {currentPassage.choices.map((choice, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleChoiceClick(choice)}
-                className={`w-full group text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between gap-4 border ${
-                  choice.action === 'RESET_CAMPAIGN'
-                    ? 'bg-gradient-to-r from-amber-600/90 to-amber-700/90 border-amber-300 text-white font-bold shadow-xl hover:scale-[1.02]'
-                    : choice.triggerBattle
-                    ? 'bg-gradient-to-r from-red-950/60 to-slate-900 border-red-500/40 hover:border-red-400 hover:shadow-lg hover:shadow-red-950/40'
-                    : 'bg-slate-900/80 border-amber-500/20 hover:border-amber-400/60 hover:bg-slate-800/80'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-                    choice.action === 'RESET_CAMPAIGN'
-                      ? 'bg-amber-400 text-slate-950 shadow-md'
-                      : choice.triggerBattle
-                      ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                  }`}>
-                    {choice.action === 'RESET_CAMPAIGN' ? <RefreshCw className="w-4 h-4 animate-spin-slow" /> : choice.triggerBattle ? <Swords className="w-4 h-4 animate-bounce" /> : idx + 1}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-sm sm:text-base text-slate-100 group-hover:text-amber-200 transition-colors">
-                      {choice.text}
-                    </span>
-                    {choice.effects && (
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-emerald-400 font-mono">
-                        {choice.effects.addGold && <span>+💰{choice.effects.addGold}g</span>}
-                        {choice.effects.addExp && <span>+✨{choice.effects.addExp} XP</span>}
-                        {choice.effects.addItem && <span>+🎒 Item</span>}
-                      </div>
-                    )}
-                  </div>
-                </div>
+            {currentPassage.choices.map((choice, idx) => {
+              const isBattleChoice = choice.triggerBattle && !isBattleCleared;
+              const isClearedBattleChoice = choice.triggerBattle && isBattleCleared;
 
-                <ChevronRight className="w-5 h-5 text-amber-400/50 group-hover:text-amber-300 group-hover:translate-x-1 transition-all shrink-0" />
-              </button>
-            ))}
+              const hasGrantingEffects = choice.effects && (choice.effects.addGold || choice.effects.addExp || choice.effects.addItem);
+              const isChoiceClaimed = hasGrantingEffects && isRewardClaimed;
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleChoiceClick(choice)}
+                  className={`w-full group text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between gap-4 border ${
+                    choice.action === 'RESET_CAMPAIGN'
+                      ? 'bg-gradient-to-r from-amber-600/90 to-amber-700/90 border-amber-300 text-white font-bold shadow-xl hover:scale-[1.02]'
+                      : isClearedBattleChoice
+                      ? 'bg-slate-900/90 border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-semibold'
+                      : isBattleChoice
+                      ? 'bg-gradient-to-r from-red-950/60 to-slate-900 border-red-500/40 hover:border-red-400 hover:shadow-lg hover:shadow-red-950/40'
+                      : 'bg-slate-900/80 border-amber-500/20 hover:border-amber-400/60 hover:bg-slate-800/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                      choice.action === 'RESET_CAMPAIGN'
+                        ? 'bg-amber-400 text-slate-950 shadow-md'
+                        : isClearedBattleChoice
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                        : isBattleChoice
+                        ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {choice.action === 'RESET_CAMPAIGN' ? (
+                        <RefreshCw className="w-4 h-4 animate-spin-slow" />
+                      ) : isClearedBattleChoice ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      ) : isBattleChoice ? (
+                        <Swords className="w-4 h-4 animate-bounce" />
+                      ) : (
+                        idx + 1
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-sm sm:text-base text-slate-100 group-hover:text-amber-200 transition-colors">
+                        {isClearedBattleChoice
+                          ? 'Area Cleared (Return to Overland Map)'
+                          : isChoiceClaimed
+                          ? `${choice.text} (Reward Already Claimed)`
+                          : choice.text}
+                      </span>
+
+                      {choice.effects && !isClearedBattleChoice && (
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-emerald-400 font-mono">
+                          {isChoiceClaimed ? (
+                            <span className="text-amber-400/80 italic">✓ Collected</span>
+                          ) : (
+                            <>
+                              {choice.effects.addGold && <span>+💰{choice.effects.addGold}g</span>}
+                              {choice.effects.addExp && <span>+✨{choice.effects.addExp} XP</span>}
+                              {choice.effects.addItem && <span>+🎒 Item</span>}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <ChevronRight className="w-5 h-5 text-amber-400/50 group-hover:text-amber-300 group-hover:translate-x-1 transition-all shrink-0" />
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 
 // Default public Firebase Project Config for Aethelgard RPG GitHub Pages deployment
 const DEFAULT_FIREBASE_CONFIG = {
@@ -30,37 +31,76 @@ export function getFirebaseConfig() {
   };
 }
 
+let appInstance = null;
 let dbInstance = null;
+let authInstance = null;
 
-export function getFirestoreDB() {
-  if (dbInstance) return dbInstance;
+export function getFirebaseApp() {
+  if (appInstance) return appInstance;
   try {
     const config = getFirebaseConfig();
-    const app = !getApps().length ? initializeApp(config) : getApp();
-    dbInstance = getFirestore(app);
-    return dbInstance;
+    appInstance = !getApps().length ? initializeApp(config) : getApp();
+    return appInstance;
   } catch (err) {
-    console.warn('Firebase initialization notice:', err);
+    console.warn('Firebase app initialization notice:', err);
     return null;
   }
 }
 
-export function setCustomFirebaseConfig(configObj) {
+export function getFirestoreDB() {
+  if (dbInstance) return dbInstance;
   try {
-    localStorage.setItem('AETHELGARD_FIREBASE_CUSTOM_CONFIG', JSON.stringify(configObj));
-    dbInstance = null;
-    return true;
-  } catch {
-    return false;
+    const app = getFirebaseApp();
+    if (app) dbInstance = getFirestore(app);
+    return dbInstance;
+  } catch (err) {
+    console.warn('Firebase Firestore initialization notice:', err);
+    return null;
   }
 }
 
-export function resetCustomFirebaseConfig() {
+export function getFirebaseAuth() {
+  if (authInstance) return authInstance;
   try {
-    localStorage.removeItem('AETHELGARD_FIREBASE_CUSTOM_CONFIG');
-    dbInstance = null;
-    return true;
-  } catch {
-    return false;
+    const app = getFirebaseApp();
+    if (app) authInstance = getAuth(app);
+    return authInstance;
+  } catch (err) {
+    console.warn('Firebase Auth initialization notice:', err);
+    return null;
   }
+}
+
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+export async function signInWithGoogle() {
+  const auth = getFirebaseAuth();
+  if (!auth) throw new Error('Firebase Auth is not initialized.');
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result.user;
+  } catch (err) {
+    console.error('Google Sign-In Error:', err);
+    if (err.code === 'auth/popup-closed-by-user') {
+      throw new Error('Sign-in popup closed before completion.');
+    }
+    if (err.code === 'auth/unauthorized-domain') {
+      throw new Error('Domain not authorized in Firebase Console -> Authentication -> Settings -> Authorized domains.');
+    }
+    throw new Error(err.message || 'Google Sign-In failed.');
+  }
+}
+
+export async function logOutFirebase() {
+  const auth = getFirebaseAuth();
+  if (auth) {
+    await signOut(auth);
+  }
+}
+
+export function onAuthChange(callback) {
+  const auth = getFirebaseAuth();
+  if (!auth) return () => {};
+  return onAuthStateChanged(auth, callback);
 }

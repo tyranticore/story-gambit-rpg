@@ -1,68 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import { saveCloudProfile, loadCloudProfile, getRecentProfiles, generateQrSaveUrl, exportSaveCode, importSaveCode, downloadSaveJson } from '../engine/saveManager';
-import { Save, Download, Upload, Copy, Check, Cloud, KeyRound, X, HardDrive, UserCheck, Sparkles, RefreshCw, Link as LinkIcon, Flame } from 'lucide-react';
+import { saveGoogleCloudProfile, loadGoogleCloudProfile, downloadSaveJson } from '../engine/saveManager';
+import { signInWithGoogle, logOutFirebase, onAuthChange } from '../engine/firebaseConfig';
+import { Save, Download, Upload, Check, X, UserCheck, LogOut, ShieldCheck, Flame, Lock } from 'lucide-react';
 import { audioManager } from '../engine/audioManager';
 
 export default function SaveSyncModal({ gameState, onLoadSaveState, onClose, onResetCampaign }) {
-  const [profileName, setProfileName] = useState(gameState.profileName || 'cycos');
-  const [recentProfiles, setRecentProfiles] = useState([]);
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
   const [statusMsg, setStatusMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-
-  const shareUrl = generateQrSaveUrl(gameState);
 
   useEffect(() => {
-    setRecentProfiles(getRecentProfiles());
+    const unsubscribe = onAuthChange((currentUser) => {
+      setUser(currentUser);
+      setAuthChecking(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleSaveProfile = async () => {
+  const handleSignIn = async () => {
     audioManager.playClick();
-    if (!profileName.trim()) {
-      setStatusMsg('❌ Please enter a profile name.');
-      return;
-    }
     setLoading(true);
-    setStatusMsg(`Saving progress to cloud profile "${profileName.trim()}"...`);
-
+    setStatusMsg('Signing in with Google...');
     try {
-      const savedName = await saveCloudProfile(profileName, gameState);
-      setRecentProfiles(getRecentProfiles());
-      setStatusMsg(`✅ Profile "${savedName}" saved! On your phone, type "${savedName}" and click Load Profile.`);
+      const signedInUser = await signInWithGoogle();
+      setUser(signedInUser);
+      setStatusMsg(`✅ Signed in as ${signedInUser.displayName || signedInUser.email}`);
     } catch (err) {
-      setStatusMsg(`❌ Cloud sync notice: Saved to Profile Cache "${profileName}". Use Share Link for instant transfer!`);
+      setStatusMsg(`❌ Sign-in failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLoadProfile = async (targetName) => {
-    const nameToLoad = targetName || profileName;
+  const handleSignOut = async () => {
     audioManager.playClick();
-    if (!nameToLoad.trim()) {
-      setStatusMsg('❌ Please enter a profile name.');
+    setLoading(true);
+    try {
+      await logOutFirebase();
+      setUser(null);
+      setStatusMsg('Signed out successfully.');
+    } catch (err) {
+      setStatusMsg(`❌ Sign-out notice: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveToCloud = async () => {
+    audioManager.playClick();
+    if (!user) {
+      setStatusMsg('❌ Please sign in with your Google account first.');
       return;
     }
     setLoading(true);
-    setStatusMsg(`Fetching save data for profile "${nameToLoad.trim()}"...`);
+    setStatusMsg('Saving game data to your Google Cloud account...');
 
     try {
-      const loaded = await loadCloudProfile(nameToLoad);
+      const savedAt = await saveGoogleCloudProfile(user, gameState);
+      const timeStr = new Date(savedAt).toLocaleTimeString();
+      setStatusMsg(`✅ Saved successfully to Google Cloud Firestore at ${timeStr}!`);
+    } catch (err) {
+      setStatusMsg(`❌ Save failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadFromCloud = async () => {
+    audioManager.playClick();
+    if (!user) {
+      setStatusMsg('❌ Please sign in with your Google account first.');
+      return;
+    }
+    setLoading(true);
+    setStatusMsg('Fetching your cloud save data from Google Firestore...');
+
+    try {
+      const loaded = await loadGoogleCloudProfile(user);
       onLoadSaveState(loaded);
-      setStatusMsg(`✅ Profile "${nameToLoad}" loaded successfully!`);
-      setTimeout(() => onClose(), 1000);
+      setStatusMsg('✅ Cloud save loaded successfully!');
+      setTimeout(() => onClose(), 1200);
     } catch (err) {
-      setStatusMsg(`❌ Load notice: ${err.message}`);
+      setStatusMsg(`❌ Load failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCopyShareUrl = () => {
-    audioManager.playClick();
-    navigator.clipboard.writeText(shareUrl);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2500);
   };
 
   return (
@@ -79,114 +102,118 @@ export default function SaveSyncModal({ gameState, onLoadSaveState, onClose, onR
 
         {/* Modal Header */}
         <div className="flex items-center gap-3 border-b border-amber-500/20 pb-4">
-          <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-400 font-bold">
-            <Flame className="w-6 h-6 animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+            <ShieldCheck className="w-6 h-6 text-amber-400 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-xl font-bold font-serif text-amber-100">Firebase Cloud Firestore Save & Sync</h2>
-            <p className="text-xs text-slate-400">Save on PC using a profile name, then type your profile name on your phone anywhere in public to resume!</p>
+            <h2 className="text-xl font-bold font-serif text-amber-100">Secure Google Account Cloud Save</h2>
+            <p className="text-xs text-slate-400">Authenticated 1-Click Game Saves with Firebase & Google OAuth 2.0</p>
           </div>
         </div>
 
-        {/* Firebase Storage Indicator */}
-        <div className="bg-slate-900/90 border border-orange-500/30 p-3 rounded-xl flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-orange-400" />
-            <span className="text-slate-200 font-semibold">Firebase Cloud Database:</span>
-            <span className="text-emerald-400 font-mono font-bold">Connected (Free Tier)</span>
+        {/* Privacy & Security Guarantee Banner */}
+        <div className="bg-slate-900/90 border border-emerald-500/30 p-3 rounded-xl flex items-start gap-2.5 text-xs">
+          <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="text-emerald-300 font-bold block">Developer Privacy & Security Policy:</span>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              Google handles your sign-in securely. Your password is never shared or visible to the developer. Only relevant game save data (hero stats, progress, items) is linked to your unique account ID.
+            </p>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono">Collection: user_saves</span>
         </div>
 
-        {/* PROFILE NAME CLOUD SAVE / LOAD PANEL */}
-        <div className="bg-slate-900/90 border border-amber-500/30 p-5 rounded-xl space-y-4">
-          <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-            <UserCheck className="w-4 h-4" />
-            <span>Profile Sync Across All Devices & Networks</span>
+        {/* GOOGLE AUTHENTICATION STATUS & ACTIONS */}
+        {authChecking ? (
+          <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-xl text-center text-xs text-amber-300">
+            Checking Google Account authentication status...
           </div>
-
-          <p className="text-xs text-slate-300">
-            Enter a memorable profile name (e.g. <span className="text-amber-300 font-bold">cycos</span>). Click <span className="text-amber-300 font-bold">Save to Cloud</span> on your PC. Later on your phone anywhere in public on cellular/5G, type <span className="text-amber-300 font-bold">cycos</span>, and tap <span className="text-amber-300 font-bold">Load Profile</span>!
-          </p>
-
-          {/* Input Box */}
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-            <label className="block text-[11px] uppercase font-bold text-slate-400">Cloud Profile Name</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="e.g. cycos"
-                value={profileName}
-                onChange={(e) => setProfileName(e.target.value)}
-                className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm font-semibold text-amber-200 focus:border-amber-400 focus:outline-none"
-              />
-              <button
-                disabled={loading}
-                onClick={handleSaveProfile}
-                className="fantasy-button-gold text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1 shrink-0 shadow-md"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save to Cloud</span>
-              </button>
-              <button
-                disabled={loading}
-                onClick={() => handleLoadProfile()}
-                className="fantasy-button text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1 shrink-0"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Load Profile</span>
-              </button>
+        ) : !user ? (
+          /* NOT SIGNED IN STATE */
+          <div className="bg-slate-900/90 border border-amber-500/30 p-6 rounded-xl text-center space-y-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-amber-100">Sign in with Google to Save & Resume Progress</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Connect your Google profile to securely sync your game save across all mobile phones, tablets, and desktop computers.
+              </p>
             </div>
-          </div>
 
-          {/* Quick-Click Recent Profiles */}
-          {recentProfiles.length > 0 && (
-            <div className="space-y-1.5">
-              <span className="text-[11px] text-slate-400 block font-semibold">Quick-Load Recent Profiles:</span>
-              <div className="flex flex-wrap gap-2">
-                {recentProfiles.map((p, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => { setProfileName(p); handleLoadProfile(p); }}
-                    className="px-3 py-1 bg-slate-950 border border-amber-500/30 hover:border-amber-400 text-amber-300 rounded-lg text-xs font-mono font-semibold transition-all"
-                  >
-                    👤 {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {statusMsg && <p className="text-xs text-center font-mono font-semibold text-amber-400 pt-1">{statusMsg}</p>}
-        </div>
-
-        {/* INSTANT 1-CLICK SHARE LINK */}
-        <div className="bg-slate-900/90 border border-amber-500/20 p-4 rounded-xl space-y-2">
-          <label className="block text-xs font-bold text-slate-300 flex items-center gap-1.5">
-            <LinkIcon className="w-4 h-4 text-amber-400" />
-            <span>1-Click Save Transfer URL (Open on Phone to Load Instantly)</span>
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              readOnly
-              value={shareUrl}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-amber-300 select-all focus:outline-none"
-            />
             <button
-              onClick={handleCopyShareUrl}
-              className="fantasy-button-gold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold shrink-0"
+              disabled={loading}
+              onClick={handleSignIn}
+              className="px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 rounded-xl font-bold text-xs shadow-lg inline-flex items-center gap-2.5 transition-all hover:scale-105"
             >
-              {linkCopied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-              <span>{linkCopied ? 'Link Copied!' : 'Copy Link'}</span>
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              <span>Sign in with Google</span>
             </button>
           </div>
-        </div>
+        ) : (
+          /* SIGNED IN STATE */
+          <div className="bg-slate-900/90 border border-amber-500/30 p-5 rounded-xl space-y-5">
+            {/* User Profile Info Card */}
+            <div className="flex items-center justify-between bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-3">
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full border border-amber-400/40 shadow-md" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 font-bold">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-xs font-bold text-amber-100">{user.displayName || 'Google User'}</h4>
+                  <p className="text-[11px] text-slate-400">{user.email}</p>
+                </div>
+              </div>
 
-        {/* Offline JSON Download & New Game Actions */}
+              <button
+                disabled={loading}
+                onClick={handleSignOut}
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                title="Sign out of Google Account"
+              >
+                <LogOut className="w-3.5 h-3.5 text-red-400" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+
+            {/* Cloud Save / Load Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                disabled={loading}
+                onClick={handleSaveToCloud}
+                className="fantasy-button-gold py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all hover:scale-105"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save Game to Cloud</span>
+              </button>
+
+              <button
+                disabled={loading}
+                onClick={handleLoadFromCloud}
+                className="fantasy-button py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all hover:scale-105"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Load Game from Cloud</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {statusMsg && (
+          <p className="text-xs text-center font-mono font-semibold text-amber-400 bg-slate-950/80 p-2.5 rounded-lg border border-amber-500/20">
+            {statusMsg}
+          </p>
+        )}
+
+        {/* Offline Backup File & New Campaign Actions */}
         <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-xl flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-xs font-bold text-slate-300">File Backup & Restart</h3>
+            <h3 className="text-xs font-bold text-slate-300">Offline JSON Backup & Restart</h3>
             <p className="text-[11px] text-slate-400">Download save file or begin fresh campaign</p>
           </div>
           <div className="flex items-center gap-2">
@@ -203,7 +230,7 @@ export default function SaveSyncModal({ gameState, onLoadSaveState, onClose, onR
                 onClick={() => { onClose(); onResetCampaign(); }}
                 className="fantasy-button-crimson text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" />
                 <span>New Campaign</span>
               </button>
             )}

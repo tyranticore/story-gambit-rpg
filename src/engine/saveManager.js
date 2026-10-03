@@ -3,16 +3,101 @@ import { getFirestoreDB } from './firebaseConfig';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const SAVE_KEY = 'STORY_GAMBIT_RPG_SAVE_V1';
-const PROFILE_LIST_KEY = 'AETHELGARD_RECENT_PROFILES';
+
+export const HERO_RECRUIT_POOL = [
+  {
+    id: 'garrick',
+    name: 'Garrick the Shadow',
+    classId: 'thief',
+    cost: 80,
+    stats: { hp: 120, maxHp: 120, mp: 30, maxMp: 30, attack: 28, defense: 10, speed: 1.4, range: 1 },
+    color: 'from-amber-600 to-amber-800',
+    quote: "Looking for someone who moves in the shadows, Commander? My daggers are at your service.",
+    description: "Melee Assassin DPS. High speed and critical strike damage."
+  },
+  {
+    id: 'lyra',
+    name: 'Lyra Windrunner',
+    classId: 'archer',
+    cost: 90,
+    stats: { hp: 110, maxHp: 110, mp: 35, maxMp: 35, attack: 26, defense: 8, speed: 1.3, range: 4 },
+    color: 'from-emerald-600 to-emerald-800',
+    quote: "My bow rarely misses its target. Lead the way.",
+    description: "Ranged Marksman DPS. Snipes foes from far away."
+  },
+  {
+    id: 'elena',
+    name: 'Elena Emberheart',
+    classId: 'mage',
+    cost: 100,
+    stats: { hp: 90, maxHp: 90, mp: 80, maxMp: 80, attack: 34, defense: 6, speed: 1.0, range: 3.5 },
+    color: 'from-purple-600 to-purple-800',
+    quote: "The arcane flames obey my command. Show me our enemies.",
+    description: "Ranged Arcane DPS. High magic damage."
+  },
+  {
+    id: 'thorin',
+    name: 'Thorin Stonebreaker',
+    classId: 'warrior',
+    cost: 85,
+    stats: { hp: 170, maxHp: 170, mp: 30, maxMp: 30, attack: 24, defense: 18, speed: 0.9, range: 1 },
+    color: 'from-red-600 to-red-800',
+    quote: "Steel and honor! I'll hold the front line against any beast.",
+    description: "Frontline Tank. High health and heavy armor."
+  },
+  {
+    id: 'brother_cassian',
+    name: 'Brother Cassian',
+    classId: 'priest',
+    cost: 75,
+    stats: { hp: 100, maxHp: 100, mp: 70, maxMp: 70, attack: 14, defense: 8, speed: 1.0, range: 3 },
+    color: 'from-cyan-600 to-cyan-800',
+    quote: "May the light mend your wounds and guide our sword arms.",
+    description: "Dedicated Backline Support Healer. Keeps party tanks at full health."
+  },
+  {
+    id: 'sir_galahad',
+    name: 'Sir Galahad',
+    classId: 'paladin',
+    cost: 110,
+    stats: { hp: 160, maxHp: 160, mp: 50, maxMp: 50, attack: 22, defense: 16, speed: 1.0, range: 1 },
+    color: 'from-yellow-600 to-yellow-800',
+    quote: "By my shield, no harm shall come to our healers!",
+    description: "Holy Tank / Sub-healer. Taunts enemies and protects weaker allies."
+  }
+];
+
+const RECRUIT_NODES = [
+  'whispering_woods', 'misty_shores', 'watchtower_ruins', 'mining_village',
+  'feywild_thicket', 'sunken_ruins', 'highland_pass', 'stormpeak_monastery', 'astral_spire'
+];
+
+export function generateInitialWanderingHeroes(playerClassId = 'warrior') {
+  const eligible = HERO_RECRUIT_POOL.filter(h => h.classId !== playerClassId);
+  const shuffled = [...eligible].sort(() => 0.5 - Math.random());
+  const selected = shuffled.slice(0, 3);
+
+  const availableNodes = [...RECRUIT_NODES].sort(() => 0.5 - Math.random());
+
+  return selected.map((hero, idx) => ({
+    ...hero,
+    nodeId: availableNodes[idx % availableNodes.length],
+    turnsRemaining: Math.floor(Math.random() * 3) + 3 // 3 to 5 turns
+  }));
+}
 
 export function getInitialGameState(selectedClassId = 'warrior') {
   const classDef = HERO_CLASSES[selectedClassId] || HERO_CLASSES.warrior;
   return {
-    version: 4,
+    version: 5,
     timestamp: Date.now(),
     currentPassageId: 'p_oakhaven_start',
     currentMapNodeId: 'oakhaven',
     unlockedMapNodes: ['oakhaven'],
+    completedBattles: [], // Nodes where battles have been defeated
+    claimedRewards: [], // Passage / Node IDs where one-time rewards have been claimed
+    wanderingHeroes: generateInitialWanderingHeroes(selectedClassId),
+    turnCounter: 0,
     storyFlags: {},
     player: {
       name: 'Valerius',
@@ -54,6 +139,12 @@ export function sanitizeGameState(state, selectedClassId = 'warrior') {
     unlockedMapNodes: Array.isArray(state.unlockedMapNodes) && state.unlockedMapNodes.length > 0
       ? state.unlockedMapNodes
       : defaultState.unlockedMapNodes,
+    completedBattles: Array.isArray(state.completedBattles) ? state.completedBattles : [],
+    claimedRewards: Array.isArray(state.claimedRewards) ? state.claimedRewards : [],
+    wanderingHeroes: Array.isArray(state.wanderingHeroes) && state.wanderingHeroes.length > 0
+      ? state.wanderingHeroes
+      : generateInitialWanderingHeroes(classId),
+    turnCounter: typeof state.turnCounter === 'number' ? state.turnCounter : 0,
     storyFlags: state.storyFlags || {},
     player: {
       ...defaultState.player,
@@ -78,6 +169,61 @@ export function sanitizeGameState(state, selectedClassId = 'warrior') {
   };
 }
 
+export function advanceMapTurn(state, destinationNodeId) {
+  const followerIds = (state.followers || []).map(f => f.id);
+  const playerClassId = state.player?.classId;
+
+  const currentTurn = (state.turnCounter || 0) + 1;
+  let updatedHeroes = [...(state.wanderingHeroes || [])];
+
+  // 1. Decrement turns remaining for existing wandering heroes
+  updatedHeroes = updatedHeroes.map(hero => {
+    if (followerIds.includes(hero.id)) return null;
+
+    const remaining = hero.turnsRemaining - 1;
+    if (remaining <= 0) {
+      const otherNodes = RECRUIT_NODES.filter(n => n !== hero.nodeId && n !== destinationNodeId);
+      const randomNode = otherNodes[Math.floor(Math.random() * otherNodes.length)] || RECRUIT_NODES[0];
+      return {
+        ...hero,
+        nodeId: randomNode,
+        turnsRemaining: Math.floor(Math.random() * 3) + 3 // 3-5 turns
+      };
+    }
+    return {
+      ...hero,
+      turnsRemaining: remaining
+    };
+  }).filter(Boolean);
+
+  // 2. Chance to spawn a new hero if total active wandering heroes < 3
+  if (updatedHeroes.length < 3 && Math.random() < 0.4) {
+    const activeHeroIds = updatedHeroes.map(h => h.id);
+    const unspawnedPool = HERO_RECRUIT_POOL.filter(
+      h => !followerIds.includes(h.id) && !activeHeroIds.includes(h.id) && h.classId !== playerClassId
+    );
+
+    if (unspawnedPool.length > 0) {
+      const newHeroDef = unspawnedPool[Math.floor(Math.random() * unspawnedPool.length)];
+      const activeNodeIds = updatedHeroes.map(h => h.nodeId);
+      const freeNodes = RECRUIT_NODES.filter(n => !activeNodeIds.includes(n));
+      const targetNode = freeNodes[Math.floor(Math.random() * freeNodes.length)] || RECRUIT_NODES[0];
+
+      updatedHeroes.push({
+        ...newHeroDef,
+        nodeId: targetNode,
+        turnsRemaining: Math.floor(Math.random() * 3) + 3
+      });
+    }
+  }
+
+  return {
+    ...state,
+    turnCounter: currentTurn,
+    wanderingHeroes: updatedHeroes
+  };
+}
+
 export function saveToLocalStorage(state) {
   try {
     const serialized = JSON.stringify({ ...state, timestamp: Date.now() });
@@ -91,9 +237,6 @@ export function saveToLocalStorage(state) {
 
 export function loadFromLocalStorage() {
   try {
-    const urlState = checkUrlForSaveState();
-    if (urlState) return sanitizeGameState(urlState);
-
     const data = localStorage.getItem(SAVE_KEY);
     if (!data) return null;
     const parsed = JSON.parse(data);
@@ -106,159 +249,70 @@ export function loadFromLocalStorage() {
 }
 
 // -------------------------------------------------------------
-// FIREBASE CLOUD FIRESTORE PROFILE SAVE & LOAD
+// SECURE AUTHENTICATED GOOGLE PROFILE CLOUD SAVE & LOAD
 // -------------------------------------------------------------
-export async function saveCloudProfile(profileName, state) {
-  const cleanName = profileName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-  if (!cleanName) throw new Error('Please enter a valid profile name.');
-
-  const payload = { ...state, profileName: cleanName, savedAt: Date.now() };
-  const jsonString = JSON.stringify(payload);
-
-  let savedSuccess = false;
-
-  // 1. Primary Cloud Backend: Firebase Cloud Firestore
-  try {
-    const db = getFirestoreDB();
-    if (db) {
-      const docRef = doc(db, 'user_saves', cleanName);
-      await setDoc(docRef, payload);
-      savedSuccess = true;
-    }
-  } catch (err) {
-    console.warn('Firebase Firestore save notice:', err);
+export async function saveGoogleCloudProfile(user, state) {
+  if (!user || !user.uid) {
+    throw new Error('You must be signed in with your Google account to save to Cloud Firestore.');
   }
 
-  // 2. Secondary: Local Dev Sync Server (/api/save-profile)
-  if (!savedSuccess) {
-    try {
-      const res = await fetch('./api/save-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: jsonString
-      });
-      if (res.ok) savedSuccess = true;
-    } catch (e) {}
+  const db = getFirestoreDB();
+  if (!db) {
+    throw new Error('Firebase Firestore database connection is not available.');
   }
 
-  // 3. Save to local device localStorage cache
+  const payload = {
+    ...state,
+    userId: user.uid,
+    userDisplayName: user.displayName || user.email || 'Adventurer',
+    savedAt: Date.now()
+  };
+
+  const docRef = doc(db, 'users', user.uid);
+  await setDoc(docRef, payload);
+
   try {
-    localStorage.setItem(`AETHELGARD_PROFILE_${cleanName}`, jsonString);
+    localStorage.setItem(`AETHELGARD_GOOGLE_SAVE_${user.uid}`, JSON.stringify(payload));
   } catch (e) {}
 
-  addRecentProfile(cleanName);
-  return cleanName;
+  return payload.savedAt;
 }
 
-export async function loadCloudProfile(profileName) {
-  const cleanName = profileName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-  if (!cleanName) throw new Error('Please enter a valid profile name.');
+export async function loadGoogleCloudProfile(user) {
+  if (!user || !user.uid) {
+    throw new Error('You must be signed in with your Google account to load your cloud save.');
+  }
 
-  // 1. Primary Cloud Backend: Firebase Cloud Firestore
+  const db = getFirestoreDB();
+  if (!db) {
+    throw new Error('Firebase Firestore database connection is not available.');
+  }
+
   try {
-    const db = getFirestoreDB();
-    if (db) {
-      const docRef = doc(db, 'user_saves', cleanName);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data && data.player) {
-          addRecentProfile(cleanName);
-          try { localStorage.setItem(`AETHELGARD_PROFILE_${cleanName}`, JSON.stringify(data)); } catch (e) {}
-          return data;
-        }
+    const docRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (data && data.player) {
+        try { localStorage.setItem(`AETHELGARD_GOOGLE_SAVE_${user.uid}`, JSON.stringify(data)); } catch (e) {}
+        return sanitizeGameState(data);
       }
     }
   } catch (err) {
-    console.warn('Firebase Firestore load notice:', err);
+    console.warn('Firestore load notice:', err);
   }
 
-  // 2. Secondary: Local Dev Sync Server (/api/load-profile)
   try {
-    const res = await fetch(`./api/load-profile?name=${cleanName}`);
-    if (res.ok) {
-      const state = await res.json();
-      if (state && state.currentPassageId && state.player) {
-        addRecentProfile(cleanName);
-        try { localStorage.setItem(`AETHELGARD_PROFILE_${cleanName}`, JSON.stringify(state)); } catch (e) {}
-        return state;
-      }
-    }
-  } catch (e) {}
-
-  // 3. Fallback: Local Device Profile Cache
-  try {
-    const cached = localStorage.getItem(`AETHELGARD_PROFILE_${cleanName}`);
+    const cached = localStorage.getItem(`AETHELGARD_GOOGLE_SAVE_${user.uid}`);
     if (cached) {
-      const state = JSON.parse(cached);
-      if (state && state.currentPassageId && state.player) {
-        addRecentProfile(cleanName);
-        return state;
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.player) {
+        return sanitizeGameState(parsed);
       }
     }
   } catch (e) {}
 
-  throw new Error(`Profile "${cleanName}" not found on Firebase Cloud. Click "Save to Cloud" on desktop first!`);
-}
-
-export function getRecentProfiles() {
-  try {
-    const list = localStorage.getItem(PROFILE_LIST_KEY);
-    return list ? JSON.parse(list) : [];
-  } catch {
-    return [];
-  }
-}
-
-function addRecentProfile(name) {
-  try {
-    const list = getRecentProfiles();
-    const updated = [name, ...list.filter(n => n !== name)].slice(0, 5);
-    localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(updated));
-  } catch (e) {}
-}
-
-export function exportSaveCode(state) {
-  try {
-    const jsonStr = JSON.stringify(state);
-    return btoa(encodeURIComponent(jsonStr));
-  } catch (err) {
-    return null;
-  }
-}
-
-export function importSaveCode(codeStr) {
-  try {
-    const jsonStr = decodeURIComponent(atob(codeStr.trim()));
-    const state = JSON.parse(jsonStr);
-    if (state && state.currentPassageId && state.player) {
-      return state;
-    }
-    return null;
-  } catch (err) {
-    return null;
-  }
-}
-
-export function generateQrSaveUrl(state) {
-  const code = exportSaveCode(state);
-  const baseUrl = window.location.origin + window.location.pathname;
-  return `${baseUrl}?save=${encodeURIComponent(code)}`;
-}
-
-export function checkUrlForSaveState() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const saveCode = params.get('save');
-    if (saveCode) {
-      const state = importSaveCode(saveCode);
-      if (state) {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        return state;
-      }
-    }
-  } catch (err) {}
-  return null;
+  throw new Error('No saved cloud game was found for your Google account. Click "Save Progress" to create one!');
 }
 
 export function downloadSaveJson(state) {

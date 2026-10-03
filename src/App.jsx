@@ -7,11 +7,14 @@ import BattleArena from './components/BattleArena';
 import SaveSyncModal from './components/SaveSyncModal';
 import HeroSelect from './components/HeroSelect';
 import PartyScreen from './components/PartyScreen';
+import ChangelogModal from './components/ChangelogModal';
 import { MAP_NODES } from './data/mapNodes';
-import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState } from './engine/saveManager';
+import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState, advanceMapTurn } from './engine/saveManager';
 import { INITIAL_STORY } from './data/initialStory';
 import { HERO_CLASSES } from './data/heroClasses';
 import { GAME_VERSION } from './version';
+import { Scroll } from 'lucide-react';
+import { audioManager } from './engine/audioManager';
 
 export default function App() {
   const [gameState, setGameState] = useState(() => {
@@ -19,11 +22,15 @@ export default function App() {
     return saved || getInitialGameState('warrior');
   });
 
+  // Hero Run active tracking (false on fresh landing screen)
+  const [hasChosenHero, setHasChosenHero] = useState(false);
+
   // Hero Class Selection is the primary landing page!
   const [activeTab, setActiveTab] = useState('hero_select');
 
   const [activeBattle, setActiveBattle] = useState(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [changelogModalOpen, setChangelogModalOpen] = useState(false);
 
   // Auto-save on state change
   useEffect(() => {
@@ -37,23 +44,36 @@ export default function App() {
       let updatedFlags = { ...prev.storyFlags };
       let updatedNodes = [...prev.unlockedMapNodes];
       let updatedBag = [...(prev.sharedBag || [])];
+      let updatedClaimed = [...(prev.claimedRewards || [])];
+
+      const currentPId = prev.currentPassageId;
+      const currentNId = prev.currentMapNodeId;
+
+      const hasResourceEffects = effects && (effects.addGold || effects.addExp || effects.addItem);
+      const isAlreadyClaimed = updatedClaimed.includes(currentPId) || updatedClaimed.includes(currentNId);
 
       if (effects) {
-        if (effects.addGold) updatedPlayer.gold += effects.addGold;
-        if (effects.addExp) {
-          updatedPlayer.exp += effects.addExp;
-          if (updatedPlayer.exp >= updatedPlayer.level * 100) {
-            updatedPlayer.level += 1;
-            updatedPlayer.maxHp += 20;
-            updatedPlayer.hp = updatedPlayer.maxHp;
-            updatedPlayer.maxMp += 10;
-            updatedPlayer.mp = updatedPlayer.maxMp;
-            updatedPlayer.attack += 5;
+        // Only grant resource effects ONCE per passage/location!
+        if (hasResourceEffects && !isAlreadyClaimed) {
+          if (effects.addGold) updatedPlayer.gold += effects.addGold;
+          if (effects.addExp) {
+            updatedPlayer.exp += effects.addExp;
+            if (updatedPlayer.exp >= updatedPlayer.level * 100) {
+              updatedPlayer.level += 1;
+              updatedPlayer.maxHp += 20;
+              updatedPlayer.hp = updatedPlayer.maxHp;
+              updatedPlayer.maxMp += 10;
+              updatedPlayer.mp = updatedPlayer.maxMp;
+              updatedPlayer.attack += 5;
+            }
           }
+          if (effects.addItem && !updatedBag.includes(effects.addItem)) {
+            updatedBag.push(effects.addItem);
+          }
+          if (currentPId) updatedClaimed.push(currentPId);
+          if (currentNId) updatedClaimed.push(currentNId);
         }
-        if (effects.addItem && !updatedBag.includes(effects.addItem)) {
-          updatedBag.push(effects.addItem);
-        }
+
         if (effects.setFlag) updatedFlags[effects.setFlag] = true;
 
         if (effects.unlockNode && !updatedNodes.includes(effects.unlockNode)) {
@@ -79,6 +99,7 @@ export default function App() {
         currentPassageId: targetPassageId,
         currentMapNodeId: targetMapNodeId,
         unlockedMapNodes: updatedNodes,
+        claimedRewards: Array.from(new Set(updatedClaimed)),
         storyFlags: updatedFlags,
         player: updatedPlayer,
         sharedBag: updatedBag
@@ -96,6 +117,7 @@ export default function App() {
         name: name || 'Hero Commander'
       }
     });
+    setHasChosenHero(true);
     setActiveTab('story');
   };
 
@@ -104,10 +126,11 @@ export default function App() {
     localStorage.removeItem('STORY_GAMBIT_RPG_SAVE_V1');
     const freshState = getInitialGameState('warrior');
     setGameState(freshState);
+    setHasChosenHero(false);
     setActiveTab('hero_select');
   };
 
-  // Recruit Follower NPC
+  // Recruit Follower NPC (from Tavern)
   const handleRecruitFollower = (npc) => {
     const classDef = HERO_CLASSES[npc.classId] || HERO_CLASSES.warrior;
 
@@ -129,6 +152,34 @@ export default function App() {
             gambits: classDef.starterGambits
           }
         ]
+      };
+    });
+  };
+
+  // Recruit Wandering Hero Encounter (from Map Node)
+  const handleRecruitWanderingHero = (hero) => {
+    const classDef = HERO_CLASSES[hero.classId] || HERO_CLASSES.warrior;
+    setGameState(prev => {
+      const followers = prev.followers || [];
+      if (followers.length >= 3 || prev.player.gold < hero.cost) return prev;
+
+      return {
+        ...prev,
+        player: { ...prev.player, gold: prev.player.gold - hero.cost },
+        followers: [
+          ...followers,
+          {
+            id: hero.id,
+            name: hero.name,
+            classId: hero.classId,
+            level: 1,
+            stats: hero.stats,
+            color: hero.color,
+            paperDoll: classDef.defaultPaperDoll,
+            gambits: classDef.starterGambits
+          }
+        ],
+        wanderingHeroes: (prev.wanderingHeroes || []).filter(h => h.id !== hero.id)
       };
     });
   };
@@ -247,6 +298,11 @@ export default function App() {
     setActiveBattle(null);
 
     if (isVictory === true) {
+      // Record this map node as defeated & cleared!
+      setGameState(prev => ({
+        ...prev,
+        completedBattles: Array.from(new Set([...(prev.completedBattles || []), prev.currentMapNodeId]))
+      }));
       setActiveTab('story');
       handleMakeChoice(winPassageId);
     } else if (outcome === 'RETREATED' || isVictory === 'RETREATED') {
@@ -259,7 +315,31 @@ export default function App() {
   // Select Map Node from Overland Map
   const handleSelectMapNode = (node) => {
     if (node.entryPassageId) {
-      handleMakeChoice(node.entryPassageId);
+      // Advance turn & wandering hero map movements
+      setGameState(prev => {
+        const nextState = advanceMapTurn(prev, node.id);
+        const updatedFlags = { ...nextState.storyFlags };
+        let updatedNodes = [...nextState.unlockedMapNodes];
+
+        if (node.id !== 'oakhaven') {
+          updatedFlags.oakhaven_intro_done = true;
+          ['whispering_woods', 'river_crossing', 'watchtower_ruins', 'misty_shores'].forEach(n => {
+            if (!updatedNodes.includes(n)) updatedNodes.push(n);
+          });
+        }
+
+        return {
+          ...nextState,
+          storyFlags: updatedFlags,
+          unlockedMapNodes: updatedNodes
+        };
+      });
+
+      const passageToLoad = (node.id === 'oakhaven' && gameState.storyFlags?.oakhaven_intro_done)
+        ? 'p_oakhaven_return'
+        : node.entryPassageId;
+
+      handleMakeChoice(passageToLoad);
       setActiveTab('story');
     }
   };
@@ -271,8 +351,10 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         gameState={gameState}
+        hasChosenHero={hasChosenHero}
         onOpenSaveModal={() => setSaveModalOpen(true)}
         onOpenHeroSelect={() => setActiveTab('hero_select')}
+        onOpenChangelog={() => setChangelogModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -280,7 +362,7 @@ export default function App() {
         {activeTab === 'hero_select' && (
           <HeroSelect
             onSelectHero={handleSelectHero}
-            onLoadSaveState={(loaded) => { setGameState(sanitizeGameState(loaded)); setActiveTab('story'); }}
+            onLoadSaveState={(loaded) => { setGameState(sanitizeGameState(loaded)); setHasChosenHero(true); setActiveTab('story'); }}
           />
         )}
 
@@ -297,6 +379,7 @@ export default function App() {
             onOpenSaveModal={() => setSaveModalOpen(true)}
             onResetCampaign={handleResetCampaign}
             onRecruitFollower={handleRecruitFollower}
+            onRecruitWanderingHero={handleRecruitWanderingHero}
           />
         )}
 
@@ -341,19 +424,29 @@ export default function App() {
       {saveModalOpen && (
         <SaveSyncModal
           gameState={gameState}
-          onLoadSaveState={(loaded) => setGameState(sanitizeGameState(loaded))}
+          onLoadSaveState={(loaded) => { setGameState(sanitizeGameState(loaded)); setHasChosenHero(true); }}
           onClose={() => setSaveModalOpen(false)}
           onResetCampaign={handleResetCampaign}
         />
       )}
 
-      {/* Footer Branding */}
+      {/* Version History & Patch Notes Modal */}
+      {changelogModalOpen && (
+        <ChangelogModal onClose={() => setChangelogModalOpen(false)} />
+      )}
+
+      {/* Footer Branding with Clickable Version Badge */}
       <footer className="py-4 border-t border-slate-900 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-        <span>Aethelgard CYOA Gambit Auto-Battler</span>
+        <span>The Branching Gambit • Branching Narrative Auto-Battler</span>
         <span className="text-amber-500/40">•</span>
-        <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold shadow-inner">
-          {GAME_VERSION}
-        </span>
+        <button
+          onClick={() => { audioManager.playClick(); setChangelogModalOpen(true); }}
+          className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-mono text-[11px] font-bold shadow-inner transition-all hover:scale-105 flex items-center gap-1 cursor-pointer"
+          title="Click to view Release Notes & Version History"
+        >
+          <Scroll className="w-3 h-3 text-amber-400" />
+          <span>{GAME_VERSION}</span>
+        </button>
       </footer>
     </div>
   );

@@ -11,12 +11,27 @@ You sit at a weathered oak table, adjusting your sword belt. The Elder of Oakhav
     choices: [
       {
         text: 'Visit Tavern & Party Screen (Recruit Followers & Hero Inventory)',
-        action: 'OPEN_TAVERN'
+        action: 'OPEN_TAVERN',
+        effects: { setFlag: 'oakhaven_intro_done', unlockNode: 'whispering_woods', unlockNode2: 'river_crossing', unlockNode3: 'watchtower_ruins', unlockNode4: 'misty_shores' }
       },
       {
         text: 'Open Overland Map to choose your adventure route',
         action: 'OPEN_MAP',
-        effects: { unlockNode: 'whispering_woods', unlockNode2: 'river_crossing', unlockNode3: 'watchtower_ruins', unlockNode4: 'misty_shores' }
+        effects: { setFlag: 'oakhaven_intro_done', unlockNode: 'whispering_woods', unlockNode2: 'river_crossing', unlockNode3: 'watchtower_ruins', unlockNode4: 'misty_shores' }
+      }
+    ]
+  },
+  p_oakhaven_return: {
+    id: 'p_oakhaven_return',
+    mapNodeId: 'oakhaven',
+    title: 'The Tavern of the Gilded Raven',
+    content: `The hearth fire crackles warmly inside the Gilded Raven Tavern. Townsfolk chat over tankards of ale, and the Elder of Oakhaven nods respectfully as your party returns.
+
+Oakhaven remains a safe haven for weary travelers. Your party rests by the fire, catching their breath before venturing back onto the dangerous roads of Aethelgard.`,
+    choices: [
+      {
+        text: 'Depart Oakhaven & Return to Overland Map',
+        action: 'OPEN_MAP'
       }
     ]
   },
