@@ -1,6 +1,16 @@
-export const GAME_VERSION = 'v0.9.9';
+export const GAME_VERSION = 'v0.9.10';
 
 export const CHANGELOG_HISTORY = [
+  {
+    version: 'v0.9.10',
+    date: 'October 4, 2026',
+    title: 'Strict Hostile Node Route Gating & Pre-Battle Choice Safety',
+    highlights: [
+      '🛡️ Hostile Node Route Gating: Overland map pathfinding strictly enforces route gating at uncleared hostile nodes (battles, dungeons, bosses). Traveling parties must halt at and clear hostile encounters before marching past.',
+      '⚔️ Pre-Battle Choice & Hero Recruitment Safety: Optional pre-battle actions (recruiting wandering heroes or claiming local caches) no longer bypass battles or prematurely mark occupied nodes as cleared.',
+      '🕊️ Peaceful & Mystery Sanctuary Categorization: Correctly categorized Misty Shores and Astral Spire as peaceful sanctuaries so travelers move smoothly through non-combat regions.'
+    ]
+  },
   {
     version: 'v0.9.9',
     date: 'October 4, 2026',

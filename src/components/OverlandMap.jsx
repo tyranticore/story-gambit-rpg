@@ -105,11 +105,28 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
     if (!isUnlocked || isTraveling || isCurrentLocation) return;
     audioManager.playClick();
 
-    const pathIds = findPath(gameState.currentMapNodeId, selectedNode.id);
-    const waypoints = pathIds.map(id => MAP_NODES.find(n => n.id === id)).filter(Boolean);
+    const fullPathIds = findPath(gameState.currentMapNodeId, selectedNode.id);
+    let gatedPathIds = [fullPathIds[0]];
+    let stoppedNode = selectedNode;
+
+    for (let i = 1; i < fullPathIds.length; i++) {
+      const stepId = fullPathIds[i];
+      gatedPathIds.push(stepId);
+      const stepNode = MAP_NODES.find(n => n.id === stepId);
+
+      const isHostile = stepNode && (!stepNode.isSafeSpot && stepNode.type !== 'town' && stepNode.type !== 'safe_sanctuary');
+      const isCleared = completedBattles.includes(stepId);
+
+      if (isHostile && !isCleared) {
+        stoppedNode = stepNode;
+        break; // Party MUST stop at the uncleared hostile node blocking the route!
+      }
+    }
+
+    const waypoints = gatedPathIds.map(id => MAP_NODES.find(n => n.id === id)).filter(Boolean);
 
     if (waypoints.length <= 1) {
-      onSelectMapNode(selectedNode);
+      onSelectMapNode(stoppedNode);
       return;
     }
 
@@ -129,7 +146,7 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
         setWalkBob(0);
         setWalkTilt(0);
         setIsTraveling(false);
-        onSelectMapNode(selectedNode);
+        onSelectMapNode(stoppedNode);
         return;
       }
 

@@ -48,6 +48,7 @@ export default function App() {
       let updatedNodes = [...prev.unlockedMapNodes];
       let updatedBag = [...(prev.sharedBag || [])];
       let updatedClaimed = [...(prev.claimedRewards || [])];
+      let updatedBattles = [...(prev.completedBattles || [])];
 
       const currentPId = prev.currentPassageId;
       const currentNId = prev.currentMapNodeId;
@@ -79,6 +80,10 @@ export default function App() {
 
         if (effects.setFlag) updatedFlags[effects.setFlag] = true;
 
+        if (effects.clearBattle && !updatedBattles.includes(effects.clearBattle)) {
+          updatedBattles.push(effects.clearBattle);
+        }
+
         if (effects.unlockNode && !updatedNodes.includes(effects.unlockNode)) {
           updatedNodes.push(effects.unlockNode);
         }
@@ -105,6 +110,7 @@ export default function App() {
         currentPassageId: targetPassageId,
         currentMapNodeId: targetMapNodeId,
         unlockedMapNodes: updatedNodes,
+        completedBattles: Array.from(new Set(updatedBattles)),
         claimedRewards: Array.from(new Set(updatedClaimed)),
         storyFlags: updatedFlags,
         player: updatedPlayer,

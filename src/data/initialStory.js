@@ -61,7 +61,7 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
       {
         text: 'Pay 30 Gold Toll & Cross Safely',
         nextPassageId: 'p_mining_enter',
-        effects: { addGold: -30, unlockNode: 'mining_village' }
+        effects: { addGold: -30, unlockNode: 'mining_village', clearBattle: 'river_crossing' }
       },
       {
         text: 'Fight the River Scouts in Auto-Battle!',

@@ -18,6 +18,7 @@ export default function StoryView({ gameState, onMakeChoice, onTriggerBattle, on
   const claimedRewards = gameState.claimedRewards || [];
 
   const isBattleCleared = currentMapNode && completedBattles.includes(currentMapNode.id);
+  const isHostileNode = currentMapNode && (!currentMapNode.isSafeSpot && currentMapNode.type !== 'town' && currentMapNode.type !== 'safe_sanctuary');
   const isRewardClaimed = (currentPassage && claimedRewards.includes(currentPassage.id)) || (currentMapNode && claimedRewards.includes(currentMapNode.id));
 
   // Check if a wandering hero is currently resting at this map node
