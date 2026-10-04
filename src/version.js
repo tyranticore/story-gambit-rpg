@@ -1,6 +1,34 @@
-export const GAME_VERSION = 'v0.9.6';
+export const GAME_VERSION = 'v0.9.9';
 
 export const CHANGELOG_HISTORY = [
+  {
+    version: 'v0.9.9',
+    date: 'October 4, 2026',
+    title: 'Persistent Cross-Campaign Codex Archives & Cloud Sync',
+    highlights: [
+      '📜 Persistent Codex Discovery Memory: Unlocked Codex entries now persist permanently across campaign completions, campaign resets, and creating new heroes.',
+      '☁️ Google Profile Codex Sync: Discovered heroes, beasts, and locations are automatically saved to your Google Cloud Profile, keeping your unlocked lore intact forever.'
+    ]
+  },
+  {
+    version: 'v0.9.8',
+    date: 'October 4, 2026',
+    title: 'Battle Speed Triangle Icons (0.5x, 1.0x, 3.0x)',
+    highlights: [
+      '⚡ Triangle Speed Selector: Updated combat battle speed options to 0.5x (▶), 1.0x (▶▶), and 3.0x (▶▶▶).',
+      '⏩ Fast-Forward Combat: Added 3.0x triple-speed multiplier for rapid auto-battling.'
+    ]
+  },
+  {
+    version: 'v0.9.7',
+    date: 'October 4, 2026',
+    title: 'Realm Codex & Progressive Discovery Wiki System',
+    highlights: [
+      '📜 Realm Codex & Lore Archive: Integrated a 28-entry interactive Wiki covering Heroes, Enemies & Beasts, and Map Locations.',
+      '🔒 Progressive Fog-of-War Discovery: Entries start locked ("???") on fresh hero runs and dynamically unlock as you recruit companions, encounter wild beasts in battle, and explore overland regions.',
+      '📊 Deep Attributes & Tactics Inspector: Inspect base stats, AI gambit attack patterns, loot rewards, default equipment, and region danger ratings.'
+    ]
+  },
   {
     version: 'v0.9.6',
     date: 'October 3, 2026',

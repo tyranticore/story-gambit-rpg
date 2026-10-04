@@ -4,7 +4,7 @@ import { MAP_NODES } from '../data/mapNodes';
 import { audioManager } from '../engine/audioManager';
 import { GAME_VERSION } from '../version';
 
-export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveModal, onOpenHeroSelect, onOpenChangelog, hasChosenHero }) {
+export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveModal, onOpenHeroSelect, onOpenChangelog, onOpenCodex, hasChosenHero }) {
   const [muted, setMuted] = React.useState(false);
 
   const toggleSound = () => {
@@ -25,7 +25,8 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
     { id: 'story', label: 'Story', fullLabel: 'Story Passage & Choices', icon: BookOpen, action: () => setActiveTab('story') },
     { id: 'map', label: 'Map', fullLabel: 'Overland Realm Map', icon: Map, action: () => setActiveTab('map') },
     { id: 'party', label: 'Party', fullLabel: 'Party & Inventory Management', icon: Backpack, action: () => setActiveTab('party') },
-    { id: 'gambits', label: 'Gambits', fullLabel: 'AI Gambit Tactics Editor', icon: Zap, action: () => setActiveTab('gambits') }
+    { id: 'gambits', label: 'Gambits', fullLabel: 'AI Gambit Tactics Editor', icon: Zap, action: () => setActiveTab('gambits') },
+    { id: 'codex', label: 'Codex', fullLabel: 'Realm Codex & Lore Wiki', icon: BookOpen, action: () => onOpenCodex ? onOpenCodex() : setActiveTab('codex') }
   ];
 
   return (
@@ -124,7 +125,7 @@ export default function Navbar({ activeTab, setActiveTab, gameState, onOpenSaveM
         )}
 
         {/* ROW 3: Responsive Navigation Grid */}
-        <nav className="grid grid-cols-5 gap-1 bg-slate-900/90 border border-amber-500/20 p-1 rounded-xl shadow-inner w-full">
+        <nav className="grid grid-cols-6 gap-1 bg-slate-900/90 border border-amber-500/20 p-1 rounded-xl shadow-inner w-full">
           {navItems.map(item => {
             const IconComp = item.icon;
             const isActive = activeTab === item.id;

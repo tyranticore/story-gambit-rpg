@@ -17,7 +17,7 @@ export default function BattleArena({ encounterKey, playerStats, playerGambits, 
 
   const [battleState, setBattleState] = useState('RUNNING'); // RUNNING, VICTORY, DEFEAT, RETREATED, PAUSED
   const [battleStance, setBattleStance] = useState('BALANCED'); // AGGRESSIVE, BALANCED, DEFENSIVE, STEALTH, FLEE
-  const [speed, setSpeed] = useState(0.75); // 0.5x, 0.75x, 1.0x, 1.5x
+  const [speed, setSpeed] = useState(1.0); // 0.5 (▶), 1.0 (▶▶), 3.0 (▶▶▶)
   const [combatLogs, setCombatLogs] = useState([]);
   const [hudTick, setHudTick] = useState(0);
 
@@ -941,22 +941,31 @@ function makeSpriteTransparent(img) {
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
             <button
-              onClick={() => setSpeed(0.5)}
-              className={`px-2 py-1 rounded-md font-mono text-[11px] ${speed === 0.5 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+              onClick={() => { audioManager.playClick(); setSpeed(0.5); }}
+              className={`px-2 py-1 rounded-md font-mono text-xs font-bold transition-all ${
+                speed === 0.5 ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Slow Speed (0.5x)"
             >
-              0.5x
+              ▶
             </button>
             <button
-              onClick={() => setSpeed(0.75)}
-              className={`px-2 py-1 rounded-md font-mono text-[11px] ${speed === 0.75 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+              onClick={() => { audioManager.playClick(); setSpeed(1.0); }}
+              className={`px-2 py-1 rounded-md font-mono text-xs font-bold transition-all ${
+                speed === 1.0 ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Normal Speed (1.0x)"
             >
-              0.75x
+              ▶▶
             </button>
             <button
-              onClick={() => setSpeed(1.0)}
-              className={`px-2 py-1 rounded-md font-mono text-[11px] ${speed === 1.0 ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'}`}
+              onClick={() => { audioManager.playClick(); setSpeed(3.0); }}
+              className={`px-2 py-1 rounded-md font-mono text-xs font-bold transition-all ${
+                speed === 3.0 ? 'bg-amber-500 text-slate-950 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Fast Speed (3.0x)"
             >
-              1.0x
+              ▶▶▶
             </button>
           </div>
 

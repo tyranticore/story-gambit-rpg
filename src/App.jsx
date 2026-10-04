@@ -8,10 +8,12 @@ import SaveSyncModal from './components/SaveSyncModal';
 import HeroSelect from './components/HeroSelect';
 import PartyScreen from './components/PartyScreen';
 import ChangelogModal from './components/ChangelogModal';
+import CodexWikiModal from './components/CodexWikiModal';
 import { MAP_NODES } from './data/mapNodes';
-import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState, advanceMapTurn } from './engine/saveManager';
+import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState, advanceMapTurn, getStoredGlobalCodex, updateStoredGlobalCodex } from './engine/saveManager';
 import { INITIAL_STORY } from './data/initialStory';
 import { HERO_CLASSES } from './data/heroClasses';
+import { ENEMIES, ENCOUNTERS } from './data/enemyDatabase';
 import { GAME_VERSION } from './version';
 import { Scroll } from 'lucide-react';
 import { audioManager } from './engine/audioManager';
@@ -31,6 +33,7 @@ export default function App() {
   const [activeBattle, setActiveBattle] = useState(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [changelogModalOpen, setChangelogModalOpen] = useState(false);
+  const [codexModalOpen, setCodexModalOpen] = useState(false);
 
   // Auto-save on state change
   useEffect(() => {
@@ -94,6 +97,9 @@ export default function App() {
       const passageObj = INITIAL_STORY[targetPassageId];
       const targetMapNodeId = (passageObj && passageObj.mapNodeId) ? passageObj.mapNodeId : prev.currentMapNodeId;
 
+      const currentLocs = prev.discoveredCodex?.locations || [];
+      const updatedLocations = Array.from(new Set([...currentLocs, ...updatedNodes, targetMapNodeId]));
+
       return {
         ...prev,
         currentPassageId: targetPassageId,
@@ -102,16 +108,31 @@ export default function App() {
         claimedRewards: Array.from(new Set(updatedClaimed)),
         storyFlags: updatedFlags,
         player: updatedPlayer,
-        sharedBag: updatedBag
+        sharedBag: updatedBag,
+        discoveredCodex: {
+          ...(prev.discoveredCodex || { heroes: [prev.player.classId], enemies: [], locations: ['oakhaven'] }),
+          locations: updatedLocations
+        }
       };
     });
   };
 
-  // Hero Class Selection -> Fresh New Journey!
+  // Hero Class Selection -> Fresh New Journey with Preserved Codex Archives!
   const handleSelectHero = ({ name, classId }) => {
+    const previousCodex = gameState?.discoveredCodex || getStoredGlobalCodex();
     const freshState = getInitialGameState(classId);
+
+    const mergedCodex = {
+      heroes: Array.from(new Set([...(previousCodex.heroes || []), ...freshState.discoveredCodex.heroes, classId])),
+      enemies: Array.from(new Set([...(previousCodex.enemies || []), ...freshState.discoveredCodex.enemies])),
+      locations: Array.from(new Set([...(previousCodex.locations || []), ...freshState.discoveredCodex.locations]))
+    };
+
+    updateStoredGlobalCodex(mergedCodex);
+
     setGameState({
       ...freshState,
+      discoveredCodex: mergedCodex,
       player: {
         ...freshState.player,
         name: name || 'Hero Commander'
@@ -121,11 +142,24 @@ export default function App() {
     setActiveTab('story');
   };
 
-  // Campaign Reset -> Return to Hero Selection Landing Screen!
+  // Campaign Reset -> Return to Hero Selection Landing Screen while keeping Codex progress intact!
   const handleResetCampaign = () => {
+    const previousCodex = gameState?.discoveredCodex || getStoredGlobalCodex();
     localStorage.removeItem('STORY_GAMBIT_RPG_SAVE_V1');
+
     const freshState = getInitialGameState('warrior');
-    setGameState(freshState);
+    const mergedCodex = {
+      heroes: Array.from(new Set([...(previousCodex.heroes || []), ...freshState.discoveredCodex.heroes])),
+      enemies: Array.from(new Set([...(previousCodex.enemies || []), ...freshState.discoveredCodex.enemies])),
+      locations: Array.from(new Set([...(previousCodex.locations || []), ...freshState.discoveredCodex.locations]))
+    };
+
+    updateStoredGlobalCodex(mergedCodex);
+
+    setGameState({
+      ...freshState,
+      discoveredCodex: mergedCodex
+    });
     setHasChosenHero(false);
     setActiveTab('hero_select');
   };
@@ -136,6 +170,7 @@ export default function App() {
 
     setGameState(prev => {
       if ((prev.followers || []).length >= 3 || prev.player.gold < npc.cost) return prev;
+      const curHeroes = prev.discoveredCodex?.heroes || [];
       return {
         ...prev,
         player: { ...prev.player, gold: prev.player.gold - npc.cost },
@@ -151,7 +186,11 @@ export default function App() {
             paperDoll: npc.defaultPaperDoll || classDef.defaultPaperDoll,
             gambits: classDef.starterGambits
           }
-        ]
+        ],
+        discoveredCodex: {
+          ...(prev.discoveredCodex || { heroes: [prev.player.classId], enemies: [], locations: ['oakhaven'] }),
+          heroes: Array.from(new Set([...curHeroes, npc.classId]))
+        }
       };
     });
   };
@@ -162,6 +201,7 @@ export default function App() {
     setGameState(prev => {
       const followers = prev.followers || [];
       if (followers.length >= 3 || prev.player.gold < hero.cost) return prev;
+      const curHeroes = prev.discoveredCodex?.heroes || [];
 
       return {
         ...prev,
@@ -179,7 +219,11 @@ export default function App() {
             gambits: classDef.starterGambits
           }
         ],
-        wanderingHeroes: (prev.wanderingHeroes || []).filter(h => h.id !== hero.id)
+        wanderingHeroes: (prev.wanderingHeroes || []).filter(h => h.id !== hero.id),
+        discoveredCodex: {
+          ...(prev.discoveredCodex || { heroes: [prev.player.classId], enemies: [], locations: ['oakhaven'] }),
+          heroes: Array.from(new Set([...curHeroes, hero.classId]))
+        }
       };
     });
   };
@@ -287,6 +331,21 @@ export default function App() {
 
   // Trigger Battle
   const handleTriggerBattle = (encounterKey, winPassageId, losePassageId) => {
+    const encounter = ENCOUNTERS[encounterKey];
+    if (encounter && encounter.enemies) {
+      const enemyTypes = encounter.enemies.map(e => e.unitTypeId).filter(Boolean);
+      setGameState(prev => {
+        const currentEnemies = prev.discoveredCodex?.enemies || [];
+        return {
+          ...prev,
+          discoveredCodex: {
+            ...(prev.discoveredCodex || { heroes: [prev.player.classId], enemies: [], locations: ['oakhaven'] }),
+            enemies: Array.from(new Set([...currentEnemies, ...enemyTypes]))
+          }
+        };
+      });
+    }
+
     setActiveBattle({ encounterKey, winPassageId, losePassageId });
     setActiveTab('battle');
   };
@@ -355,6 +414,7 @@ export default function App() {
         onOpenSaveModal={() => setSaveModalOpen(true)}
         onOpenHeroSelect={() => setActiveTab('hero_select')}
         onOpenChangelog={() => setChangelogModalOpen(true)}
+        onOpenCodex={() => setCodexModalOpen(true)}
       />
 
       {/* Main View Area */}
@@ -409,6 +469,13 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'codex' && (
+          <CodexWikiModal
+            gameState={gameState}
+            onClose={() => setActiveTab('story')}
+          />
+        )}
+
         {activeTab === 'battle' && activeBattle && (
           <BattleArena
             encounterKey={activeBattle.encounterKey}
@@ -433,6 +500,14 @@ export default function App() {
       {/* Version History & Patch Notes Modal */}
       {changelogModalOpen && (
         <ChangelogModal onClose={() => setChangelogModalOpen(false)} />
+      )}
+
+      {/* Realm Codex & Wiki Modal */}
+      {codexModalOpen && (
+        <CodexWikiModal
+          gameState={gameState}
+          onClose={() => setCodexModalOpen(false)}
+        />
       )}
 
       {/* Footer Branding with Clickable Version Badge */}

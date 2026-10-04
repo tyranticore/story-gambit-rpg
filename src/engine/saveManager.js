@@ -86,8 +86,40 @@ export function generateInitialWanderingHeroes(playerClassId = 'warrior') {
   }));
 }
 
+const GLOBAL_CODEX_KEY = 'AETHELGARD_GLOBAL_CODEX_V1';
+
+export function getStoredGlobalCodex() {
+  try {
+    const data = localStorage.getItem(GLOBAL_CODEX_KEY);
+    if (!data) return { heroes: [], enemies: [], locations: [] };
+    const parsed = JSON.parse(data);
+    return {
+      heroes: Array.isArray(parsed?.heroes) ? parsed.heroes : [],
+      enemies: Array.isArray(parsed?.enemies) ? parsed.enemies : [],
+      locations: Array.isArray(parsed?.locations) ? parsed.locations : []
+    };
+  } catch (e) {
+    return { heroes: [], enemies: [], locations: [] };
+  }
+}
+
+export function updateStoredGlobalCodex(codex) {
+  if (!codex) return;
+  try {
+    const existing = getStoredGlobalCodex();
+    const merged = {
+      heroes: Array.from(new Set([...existing.heroes, ...(codex.heroes || [])])),
+      enemies: Array.from(new Set([...existing.enemies, ...(codex.enemies || [])])),
+      locations: Array.from(new Set([...existing.locations, ...(codex.locations || [])]))
+    };
+    localStorage.setItem(GLOBAL_CODEX_KEY, JSON.stringify(merged));
+  } catch (e) {}
+}
+
 export function getInitialGameState(selectedClassId = 'warrior') {
   const classDef = HERO_CLASSES[selectedClassId] || HERO_CLASSES.warrior;
+  const globalCodex = getStoredGlobalCodex();
+
   return {
     version: 5,
     timestamp: Date.now(),
@@ -117,6 +149,11 @@ export function getInitialGameState(selectedClassId = 'warrior') {
       gambits: [...classDef.starterGambits]
     },
     followers: [],
+    discoveredCodex: {
+      heroes: Array.from(new Set([...globalCodex.heroes, selectedClassId])),
+      enemies: Array.from(new Set([...globalCodex.enemies])),
+      locations: Array.from(new Set([...globalCodex.locations, 'oakhaven']))
+    },
     sharedBag: ['health_potion', 'ruby_pendant', 'quiver', 'mana_ring'],
     journalLog: ['Chosen hero arrived at Oakhaven Tavern.']
   };
@@ -129,6 +166,17 @@ export function sanitizeGameState(state, selectedClassId = 'warrior') {
 
   const classId = state.player?.classId || selectedClassId;
   const defaultState = getInitialGameState(classId);
+
+  const globalCodex = getStoredGlobalCodex();
+  const rawCodex = state.discoveredCodex || {};
+
+  const mergedCodex = {
+    heroes: Array.from(new Set([...globalCodex.heroes, ...(rawCodex.heroes || []), classId])),
+    enemies: Array.from(new Set([...globalCodex.enemies, ...(rawCodex.enemies || [])])),
+    locations: Array.from(new Set([...globalCodex.locations, ...(rawCodex.locations || []), 'oakhaven']))
+  };
+
+  updateStoredGlobalCodex(mergedCodex);
 
   return {
     ...defaultState,
@@ -164,6 +212,7 @@ export function sanitizeGameState(state, selectedClassId = 'warrior') {
         : defaultState.player.gambits
     },
     followers: Array.isArray(state.followers) ? state.followers : [],
+    discoveredCodex: mergedCodex,
     sharedBag: Array.isArray(state.sharedBag) ? state.sharedBag : defaultState.sharedBag,
     journalLog: Array.isArray(state.journalLog) ? state.journalLog : defaultState.journalLog
   };
@@ -226,6 +275,9 @@ export function advanceMapTurn(state, destinationNodeId) {
 
 export function saveToLocalStorage(state) {
   try {
+    if (state && state.discoveredCodex) {
+      updateStoredGlobalCodex(state.discoveredCodex);
+    }
     const serialized = JSON.stringify({ ...state, timestamp: Date.now() });
     localStorage.setItem(SAVE_KEY, serialized);
     return true;
