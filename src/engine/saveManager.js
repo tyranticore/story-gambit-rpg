@@ -127,8 +127,7 @@ export const NODE_AFFIXES = {
 export const ALL_SECRET_NODES = ['goblin_market', 'fey_shrine', 'sunken_vault', 'cursed_catacombs', 'dragon_altar'];
 
 export function rollCampaignSecretNodes() {
-  const shuffled = [...ALL_SECRET_NODES].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, 3);
+  return [...ALL_SECRET_NODES];
 }
 
 export function rollCampaignNodeAffixes() {
@@ -214,12 +213,10 @@ export function sanitizeGameState(state, selectedClassId = 'warrior') {
     version: state.version || defaultState.version,
     currentPassageId: state.currentPassageId || defaultState.currentPassageId,
     currentMapNodeId: state.currentMapNodeId || defaultState.currentMapNodeId,
+    activeSecretNodes: ALL_SECRET_NODES,
     unlockedMapNodes: Array.isArray(state.unlockedMapNodes) && state.unlockedMapNodes.length > 0
       ? state.unlockedMapNodes
       : defaultState.unlockedMapNodes,
-    activeSecretNodes: Array.isArray(state.activeSecretNodes) && state.activeSecretNodes.length > 0
-      ? state.activeSecretNodes
-      : defaultState.activeSecretNodes,
     nodeAffixes: state.nodeAffixes || defaultState.nodeAffixes,
     completedBattles: Array.isArray(state.completedBattles) ? state.completedBattles : [],
     claimedRewards: Array.isArray(state.claimedRewards) ? state.claimedRewards : [],

@@ -7,14 +7,14 @@ export const MAP_NODES = [
     hasTavern: true,
     isSafeSpot: true,
     region: 'The Oakwood Lowlands',
-    x: 6,
-    y: 70,
+    x: 4.9,
+    y: 37.1,
     icon: 'Shield',
     danger: 0,
     description: 'A bustling medieval settlement surrounded by towering oak trees. Rest at the hearthfire tavern and forge steel.',
     entryPassageId: 'p_oakhaven_start',
     unlockedByDefault: true,
-    connectedTo: ['whispering_woods', 'misty_shores', 'watchtower_ruins', 'river_crossing']
+    connectedTo: ['watchtower_ruins', 'whispering_woods']
   },
   {
     id: 'watchtower_ruins',
@@ -24,14 +24,14 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: true,
     region: 'The Oakwood Lowlands',
-    x: 14,
-    y: 84,
+    x: 4.3,
+    y: 67.1,
     icon: 'Compass',
     danger: 0,
     description: 'Crumbling stone watchtower overlooking the valley. Local rangers leave caches of arrows and gear for travelers.',
     entryPassageId: 'p_watchtower_enter',
     unlockedByDefault: false,
-    connectedTo: ['oakhaven', 'whispering_woods', 'mining_village', 'goblin_market']
+    connectedTo: ['oakhaven', 'whispering_woods', 'river_crossing']
   },
   {
     id: 'river_crossing',
@@ -41,15 +41,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'The Oakwood Lowlands',
-    x: 16,
-    y: 42,
+    x: 14.4,
+    y: 82.7,
     icon: 'Shield',
     danger: 2,
     description: 'Rushing river spanned by a timber bridge guarded by heavily armed river scouts.',
     entryPassageId: 'p_river_enter',
     battleEncounter: 'goblin_patrol',
     unlockedByDefault: false,
-    connectedTo: ['oakhaven', 'misty_shores', 'mining_village']
+    connectedTo: ['watchtower_ruins', 'whispering_woods', 'goblin_market']
   },
   {
     id: 'whispering_woods',
@@ -59,15 +59,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'The Oakwood Lowlands',
-    x: 24,
-    y: 60,
+    x: 19.0,
+    y: 55.5,
     icon: 'Trees',
     danger: 2,
     description: 'Ancient canopy where green goblins and skeletal sentries ambush weary travelers.',
     entryPassageId: 'p_woods_enter',
     battleEncounter: 'goblin_patrol',
     unlockedByDefault: false,
-    connectedTo: ['oakhaven', 'watchtower_ruins', 'sunken_ruins', 'feywild_thicket', 'forgotten_crypt', 'goblin_market']
+    connectedTo: ['oakhaven', 'watchtower_ruins', 'river_crossing', 'goblin_market', 'misty_shores', 'timberwall_village']
   },
   {
     id: 'goblin_market',
@@ -78,14 +78,14 @@ export const MAP_NODES = [
     isSafeSpot: true,
     isSecret: true,
     region: 'The Oakwood Lowlands',
-    x: 28,
-    y: 90,
+    x: 24.8,
+    y: 71.5,
     icon: 'Sparkles',
     danger: 0,
     description: 'A shadowy encampment hidden behind thick brambles where rogue goblin merchants trade rare accessories and weapons.',
     entryPassageId: 'p_goblin_market_enter',
     unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'watchtower_ruins']
+    connectedTo: ['river_crossing', 'whispering_woods']
   },
   {
     id: 'misty_shores',
@@ -95,14 +95,14 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: true,
     region: 'The Arcane Coast',
-    x: 20,
-    y: 20,
+    x: 20.6,
+    y: 30.3,
     icon: 'Compass',
     danger: 2,
     description: 'Fog-shrouded coastline where wandering mercenary heroes pitch camp near hidden sea caves.',
     entryPassageId: 'p_shores_enter',
     unlockedByDefault: false,
-    connectedTo: ['oakhaven', 'river_crossing', 'sunken_ruins', 'stormpeak_monastery']
+    connectedTo: ['whispering_woods', 'feywild_thicket']
   },
   {
     id: 'feywild_thicket',
@@ -112,14 +112,31 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: true,
     region: 'The Oakwood Lowlands',
-    x: 32,
-    y: 78,
+    x: 26.2,
+    y: 21.1,
     icon: 'Sparkles',
     danger: 0,
     description: 'Bramble thicket where luminescent fey spirits bless worthy adventurers and restore party health.',
     entryPassageId: 'p_feywild_enter',
     unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'forgotten_crypt', 'fey_shrine']
+    connectedTo: ['misty_shores', 'timberwall_village']
+  },
+  {
+    id: 'timberwall_village',
+    name: 'Timberwall Plains Village',
+    subtitle: 'Plains Settlement & Crossroads Tavern',
+    type: 'town',
+    hasTavern: true,
+    isSafeSpot: true,
+    region: 'The Oakwood Lowlands',
+    x: 31.1,
+    y: 44.5,
+    icon: 'Shield',
+    danger: 0,
+    description: 'A fortified wooden settlement on the open plains between the wild forest and the mountains. Travelers rest by the hearth.',
+    entryPassageId: 'p_timberwall_enter',
+    unlockedByDefault: false,
+    connectedTo: ['feywild_thicket', 'whispering_woods', 'mining_village', 'highland_pass', 'fey_shrine']
   },
   {
     id: 'fey_shrine',
@@ -130,32 +147,14 @@ export const MAP_NODES = [
     isSafeSpot: true,
     isSecret: true,
     region: 'The Oakwood Lowlands',
-    x: 44,
-    y: 88,
+    x: 40.8,
+    y: 55.5,
     icon: 'Sparkles',
     danger: 0,
     description: 'Luminescent blue crystals encircle a sacred altar. Fey spirits mend party wounds and bestow ancient mana.',
     entryPassageId: 'p_fey_shrine_enter',
     unlockedByDefault: false,
-    connectedTo: ['feywild_thicket', 'forgotten_crypt']
-  },
-  {
-    id: 'forgotten_crypt',
-    name: 'Crypt of King Aethelred',
-    subtitle: 'Undead Tomb Dungeon',
-    type: 'dungeon',
-    hasTavern: false,
-    isSafeSpot: false,
-    region: 'The Central Catacombs',
-    x: 38,
-    y: 58,
-    icon: 'Landmark',
-    danger: 3,
-    description: 'Subterranean tomb guarded by skeletal sentries defending royal treasures.',
-    entryPassageId: 'p_crypt_enter',
-    battleEncounter: 'goblin_patrol',
-    unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'feywild_thicket', 'sunken_ruins', 'abyssal_chasm', 'fey_shrine']
+    connectedTo: ['timberwall_village', 'mining_village']
   },
   {
     id: 'mining_village',
@@ -165,14 +164,14 @@ export const MAP_NODES = [
     hasTavern: true,
     isSafeSpot: true,
     region: 'The Gilded Mountains',
-    x: 34,
-    y: 36,
+    x: 46.4,
+    y: 67.9,
     icon: 'Shield',
     danger: 0,
     description: 'Bustling mountain settlement rich in iron ore with a lively miner tavern and dwarven armor smiths.',
     entryPassageId: 'p_mining_enter',
     unlockedByDefault: false,
-    connectedTo: ['watchtower_ruins', 'river_crossing', 'highland_pass']
+    connectedTo: ['timberwall_village', 'forgotten_crypt', 'sunken_ruins', 'fey_shrine']
   },
   {
     id: 'sunken_ruins',
@@ -182,15 +181,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'The Arcane Coast',
-    x: 48,
-    y: 40,
+    x: 52.0,
+    y: 95.1,
     icon: 'Landmark',
     danger: 3,
     description: 'Flooded stone archways pulsing with corrupted mana crystals. Harpies roost atop broken columns.',
     entryPassageId: 'p_ruins_enter',
     battleEncounter: 'harpy_pack',
     unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'misty_shores', 'forgotten_crypt', 'astral_spire', 'ironclad_keep', 'sunken_vault']
+    connectedTo: ['mining_village', 'forgotten_crypt', 'sunken_vault']
   },
   {
     id: 'sunken_vault',
@@ -201,15 +200,33 @@ export const MAP_NODES = [
     isSafeSpot: false,
     isSecret: true,
     region: 'The Arcane Coast',
-    x: 52,
-    y: 22,
+    x: 64.4,
+    y: 90.7,
     icon: 'Landmark',
     danger: 4,
     description: 'Submerged stone vault filled with ancient chests guarded by elite harpy sky-hunters and siren specters.',
     entryPassageId: 'p_sunken_vault_enter',
     battleEncounter: 'sunken_vault_guard',
     unlockedByDefault: false,
-    connectedTo: ['sunken_ruins', 'astral_spire']
+    connectedTo: ['sunken_ruins']
+  },
+  {
+    id: 'forgotten_crypt',
+    name: 'Crypt of King Aethelred',
+    subtitle: 'Undead Tomb Dungeon',
+    type: 'dungeon',
+    hasTavern: false,
+    isSafeSpot: false,
+    region: 'The Central Catacombs',
+    x: 55.3,
+    y: 65.7,
+    icon: 'Landmark',
+    danger: 3,
+    description: 'Subterranean tomb guarded by skeletal sentries defending royal treasures.',
+    entryPassageId: 'p_crypt_enter',
+    battleEncounter: 'goblin_patrol',
+    unlockedByDefault: false,
+    connectedTo: ['mining_village', 'sunken_ruins', 'abyssal_chasm']
   },
   {
     id: 'highland_pass',
@@ -219,15 +236,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'The Gilded Mountains',
-    x: 54,
-    y: 20,
+    x: 50.1,
+    y: 23.3,
     icon: 'Castle',
     danger: 3,
     description: 'Treacherous mountain pass buffeted by freezing gale winds and wild harpy skirmishers.',
     entryPassageId: 'p_highland_enter',
     battleEncounter: 'harpy_pack',
     unlockedByDefault: false,
-    connectedTo: ['mining_village', 'stormpeak_monastery', 'obsidian_forge']
+    connectedTo: ['timberwall_village', 'stormpeak_monastery']
   },
   {
     id: 'stormpeak_monastery',
@@ -237,14 +254,14 @@ export const MAP_NODES = [
     hasTavern: true,
     isSafeSpot: true,
     region: 'The Gilded Mountains',
-    x: 42,
-    y: 10,
+    x: 55.3,
+    y: 16.3,
     icon: 'Shield',
     danger: 0,
     description: 'High altitude monastery where holy clerics bless weapons and offer sanctuary to weary travelers.',
     entryPassageId: 'p_monastery_enter',
     unlockedByDefault: false,
-    connectedTo: ['misty_shores', 'highland_pass', 'astral_spire']
+    connectedTo: ['highland_pass', 'astral_spire']
   },
   {
     id: 'astral_spire',
@@ -254,14 +271,14 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: true,
     region: 'The Arcane Coast',
-    x: 64,
-    y: 26,
+    x: 63.1,
+    y: 16.9,
     icon: 'Sparkles',
     danger: 4,
     description: 'Soaring crystalline tower housing ancient spellbooks where wandering sorcerers seek adventuring guilds.',
     entryPassageId: 'p_astral_enter',
     unlockedByDefault: false,
-    connectedTo: ['sunken_ruins', 'stormpeak_monastery', 'obsidian_forge', 'ironclad_keep', 'sunken_vault']
+    connectedTo: ['stormpeak_monastery', 'ironclad_keep']
   },
   {
     id: 'abyssal_chasm',
@@ -271,15 +288,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'The Central Catacombs',
-    x: 60,
-    y: 74,
+    x: 81.2,
+    y: 82.7,
     icon: 'Landmark',
     danger: 4,
     description: 'Deep subterranean abyss pulsing with dark void magic and shadow assassins.',
     entryPassageId: 'p_abyssal_enter',
     battleEncounter: 'iron_golem_guard',
     unlockedByDefault: false,
-    connectedTo: ['forgotten_crypt', 'ironclad_keep', 'cursed_catacombs']
+    connectedTo: ['forgotten_crypt', 'obsidian_forge', 'cursed_catacombs']
   },
   {
     id: 'cursed_catacombs',
@@ -290,15 +307,15 @@ export const MAP_NODES = [
     isSafeSpot: false,
     isSecret: true,
     region: 'The Central Catacombs',
-    x: 68,
-    y: 82,
+    x: 89.7,
+    y: 89.9,
     icon: 'Landmark',
     danger: 4,
     description: 'Tomb of ancient void cultists. High risk, legendary rewards await those who defeat the void wraiths!',
     entryPassageId: 'p_cursed_catacombs_enter',
     battleEncounter: 'catacombs_boss',
     unlockedByDefault: false,
-    connectedTo: ['abyssal_chasm', 'ironclad_keep']
+    connectedTo: ['abyssal_chasm']
   },
   {
     id: 'obsidian_forge',
@@ -308,14 +325,14 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: true,
     region: 'Nether Volcanic Summit',
-    x: 74,
-    y: 18,
+    x: 93.4,
+    y: 68.5,
     icon: 'Flame',
     danger: 0,
     description: 'Ancient dwarf forge built over magma streams where master blacksmiths forge legendary gear.',
     entryPassageId: 'p_forge_enter',
     unlockedByDefault: false,
-    connectedTo: ['highland_pass', 'astral_spire', 'volcanic_slopes', 'dragon_altar']
+    connectedTo: ['abyssal_chasm', 'dragon_altar']
   },
   {
     id: 'dragon_altar',
@@ -326,14 +343,14 @@ export const MAP_NODES = [
     isSafeSpot: true,
     isSecret: true,
     region: 'Nether Volcanic Summit',
-    x: 82,
-    y: 22,
+    x: 87.8,
+    y: 47.5,
     icon: 'Flame',
     danger: 0,
     description: 'Ancient dragon shrine carved into obsidian rock. High priests bless your party with Dragonslayer flames before the final summit.',
     entryPassageId: 'p_dragon_altar_enter',
     unlockedByDefault: false,
-    connectedTo: ['obsidian_forge', 'volcanic_slopes']
+    connectedTo: ['obsidian_forge', 'ironclad_keep']
   },
   {
     id: 'ironclad_keep',
@@ -343,15 +360,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'Nether Volcanic Summit',
-    x: 76,
-    y: 54,
+    x: 78.3,
+    y: 34.3,
     icon: 'Castle',
     danger: 4,
     description: 'An imposing obsidian citadel heavily guarded by armored iron golems and shadow assassins.',
     entryPassageId: 'p_keep_enter',
     battleEncounter: 'iron_golem_guard',
     unlockedByDefault: false,
-    connectedTo: ['sunken_ruins', 'astral_spire', 'abyssal_chasm', 'volcanic_slopes', 'dragon_peak', 'cursed_catacombs']
+    connectedTo: ['astral_spire', 'dragon_altar', 'volcanic_slopes']
   },
   {
     id: 'volcanic_slopes',
@@ -361,15 +378,15 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'Nether Volcanic Summit',
-    x: 86,
-    y: 36,
+    x: 88.4,
+    y: 31.5,
     icon: 'Flame',
     danger: 5,
     description: 'Scorched ash fields guarding the final volcanic ascent.',
     entryPassageId: 'p_slopes_enter',
     battleEncounter: 'iron_golem_guard',
     unlockedByDefault: false,
-    connectedTo: ['obsidian_forge', 'ironclad_keep', 'dragon_peak', 'dragon_altar']
+    connectedTo: ['ironclad_keep', 'dragon_peak']
   },
   {
     id: 'dragon_peak',
@@ -379,14 +396,14 @@ export const MAP_NODES = [
     hasTavern: false,
     isSafeSpot: false,
     region: 'Nether Volcanic Summit',
-    x: 95,
-    y: 48,
+    x: 94.8,
+    y: 14.3,
     icon: 'Flame',
     danger: 5,
     description: 'A scorching volcanic abyss where the ancient Nether Dragon Lord slumbers amidst mountains of stolen treasure.',
     entryPassageId: 'p_dragon_peak_enter',
     battleEncounter: 'nether_dragon_boss',
     unlockedByDefault: false,
-    connectedTo: ['ironclad_keep', 'volcanic_slopes']
+    connectedTo: ['volcanic_slopes']
   }
 ];

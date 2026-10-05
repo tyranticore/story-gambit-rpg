@@ -84,37 +84,40 @@ export default function App() {
           updatedBattles.push(effects.clearBattle);
         }
 
-        if (effects.unlockNode && !updatedNodes.includes(effects.unlockNode)) {
-          updatedNodes.push(effects.unlockNode);
-        }
-        if (effects.unlockNode2 && !updatedNodes.includes(effects.unlockNode2)) {
-          updatedNodes.push(effects.unlockNode2);
-        }
-        if (effects.unlockNode3 && !updatedNodes.includes(effects.unlockNode3)) {
-          updatedNodes.push(effects.unlockNode3);
-        }
-        if (effects.unlockNode4 && !updatedNodes.includes(effects.unlockNode4)) {
-          updatedNodes.push(effects.unlockNode4);
-        }
+        const tryUnlock = (nodeId) => {
+          if (!nodeId || updatedNodes.includes(nodeId)) return;
+          updatedNodes.push(nodeId);
+        };
+
+        if (effects.unlockNode) tryUnlock(effects.unlockNode);
+        if (effects.unlockNode2) tryUnlock(effects.unlockNode2);
+        if (effects.unlockNode3) tryUnlock(effects.unlockNode3);
+        if (effects.unlockNode4) tryUnlock(effects.unlockNode4);
       }
 
-      // Auto-reveal connected secret nodes rolled for this campaign run
-      const activeSecrets = prev.activeSecretNodes || [];
-      const nodesToCheck = [...updatedNodes, prev.currentMapNodeId];
-      nodesToCheck.forEach(nodeId => {
-        const nodeObj = MAP_NODES.find(n => n.id === nodeId);
-        if (nodeObj && nodeObj.connectedTo) {
-          nodeObj.connectedTo.forEach(connId => {
-            if (activeSecrets.includes(connId) && !updatedNodes.includes(connId)) {
+      const targetPassageId = nextPassageId || prev.currentPassageId;
+      const passageObj = INITIAL_STORY[targetPassageId];
+      const targetMapNodeId = (passageObj && passageObj.mapNodeId) ? passageObj.mapNodeId : prev.currentMapNodeId;
+
+      // Auto-unlock non-secret neighbors of any visited or cleared nodes (at minimum one connecting point is enough)
+      const visitedOrClearedRoots = new Set([
+        'oakhaven',
+        targetMapNodeId,
+        ...updatedBattles,
+        ...(prev.visitedNodes || [])
+      ]);
+
+      visitedOrClearedRoots.forEach(rId => {
+        const rNode = MAP_NODES.find(n => n.id === rId);
+        if (rNode?.connectedTo) {
+          rNode.connectedTo.forEach(connId => {
+            const connNode = MAP_NODES.find(n => n.id === connId);
+            if (connNode && !connNode.isSecret && !updatedNodes.includes(connId)) {
               updatedNodes.push(connId);
             }
           });
         }
       });
-
-      const targetPassageId = nextPassageId || prev.currentPassageId;
-      const passageObj = INITIAL_STORY[targetPassageId];
-      const targetMapNodeId = (passageObj && passageObj.mapNodeId) ? passageObj.mapNodeId : prev.currentMapNodeId;
 
       const currentLocs = prev.discoveredCodex?.locations || [];
       const updatedLocations = Array.from(new Set([...currentLocs, ...updatedNodes, targetMapNodeId]));
@@ -407,19 +410,31 @@ export default function App() {
       setGameState(prev => {
         const nextState = advanceMapTurn(prev, node.id);
         const updatedFlags = { ...nextState.storyFlags };
-        let updatedNodes = [...nextState.unlockedMapNodes];
+        const visited = Array.from(new Set([...(nextState.visitedNodes || []), node.id, prev.currentMapNodeId]));
+        const updatedNodes = new Set([...nextState.unlockedMapNodes, node.id]);
+
+        // At minimum one connecting map point visited/cleared unlocks adjacent standard nodes
+        visited.forEach(vId => {
+          const vNode = MAP_NODES.find(n => n.id === vId);
+          if (vNode?.connectedTo) {
+            vNode.connectedTo.forEach(connId => {
+              const connNode = MAP_NODES.find(n => n.id === connId);
+              if (connNode && !connNode.isSecret) {
+                updatedNodes.add(connId);
+              }
+            });
+          }
+        });
 
         if (node.id !== 'oakhaven') {
           updatedFlags.oakhaven_intro_done = true;
-          ['whispering_woods', 'river_crossing', 'watchtower_ruins', 'misty_shores'].forEach(n => {
-            if (!updatedNodes.includes(n)) updatedNodes.push(n);
-          });
         }
 
         return {
           ...nextState,
           storyFlags: updatedFlags,
-          unlockedMapNodes: updatedNodes
+          visitedNodes: visited,
+          unlockedMapNodes: Array.from(updatedNodes)
         };
       });
 

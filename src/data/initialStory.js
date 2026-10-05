@@ -46,7 +46,7 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
       {
         text: 'Claim Ranger Gear & Open Map',
         action: 'OPEN_MAP',
-        effects: { addGold: 45, addItem: 'quiver', unlockNode: 'whispering_woods', unlockNode2: 'mining_village' }
+        effects: { addGold: 45, addItem: 'quiver', unlockNode: 'whispering_woods', unlockNode2: 'river_crossing' }
       }
     ]
   },
@@ -60,8 +60,8 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
     choices: [
       {
         text: 'Pay 30 Gold Toll & Cross Safely',
-        nextPassageId: 'p_mining_enter',
-        effects: { addGold: -30, unlockNode: 'mining_village', clearBattle: 'river_crossing' }
+        action: 'OPEN_MAP',
+        effects: { addGold: -30, unlockNode: 'goblin_market', unlockNode2: 'whispering_woods', clearBattle: 'river_crossing' }
       },
       {
         text: 'Fight the River Scouts in Auto-Battle!',
@@ -75,12 +75,32 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
     id: 'p_river_win',
     mapNodeId: 'river_crossing',
     title: 'Bridge Cleared',
-    content: `The river scouts retreat into the reeds! You claim 50 Gold and cross into the **Gilded Mining Village**.`,
+    content: `The river scouts retreat into the reeds! In the muddy wheel ruts of a merchant cart, you spot an abandoned leather courier pouch next to a chest of 50 Gold.`,
     choices: [
       {
-        text: 'Cross Bridge to Mining Village',
+        text: '🔍 Search the Courier Pouch for Secret Smuggler Notes',
+        nextPassageId: 'p_river_smuggler_note',
+        effects: { addGold: 50, unlockNode: 'whispering_woods' }
+      },
+      {
+        text: 'Leave the Pouch & Proceed onto Whispering Woods',
         action: 'OPEN_MAP',
-        effects: { addGold: 50, unlockNode: 'mining_village' }
+        effects: { addGold: 50, unlockNode: 'whispering_woods' }
+      }
+    ]
+  },
+  p_river_smuggler_note: {
+    id: 'p_river_smuggler_note',
+    mapNodeId: 'river_crossing',
+    title: 'Smuggler\'s Secret Map Discovered!',
+    content: `Unrolling the charcoal-stained parchment, you decipher a coded trail leading into the deep southern brambles.
+    
+✨ **The Goblin Black Market** has been revealed on your world map!`,
+    choices: [
+      {
+        text: 'Mark the Secret Trail on Map & Continue',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'goblin_market', unlockNode2: 'whispering_woods' }
       }
     ]
   },
@@ -95,7 +115,64 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
       {
         text: 'Receive Fey Blessing & Open Map',
         action: 'OPEN_MAP',
-        effects: { addExp: 50, unlockNode: 'forgotten_crypt' }
+        effects: { addExp: 50, unlockNode: 'timberwall_village' }
+      }
+    ]
+  },
+
+  // TIMBERWALL PLAINS VILLAGE
+  p_timberwall_enter: {
+    id: 'p_timberwall_enter',
+    mapNodeId: 'timberwall_village',
+    title: 'Timberwall Plains Village',
+    content: `Sturdy timber palisades rise above the grassy plains. Frontier traders, lumberjacks, and scouts gather around hearthfires to share rumors of the highland mountain passes and ancient crypts.`,
+    choices: [
+      {
+        text: 'Rest at the Plains Hearth Tavern (Restore HP & Mana)',
+        nextPassageId: 'p_timberwall_rest',
+        effects: { restoreHpFull: true, restoreManaFull: true, unlockNode: 'highland_pass', unlockNode2: 'mining_village' }
+      },
+      {
+        text: '🕯️ Buy an Old Plains Hunter Ale & Inquire about Local Legends (15 Gold)',
+        nextPassageId: 'p_timberwall_fey_rumor',
+        effects: { addGold: -15 }
+      },
+      {
+        text: 'Review the Overland Map',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'highland_pass', unlockNode2: 'mining_village' }
+      }
+    ]
+  },
+  p_timberwall_fey_rumor: {
+    id: 'p_timberwall_fey_rumor',
+    mapNodeId: 'timberwall_village',
+    title: 'The Moon Fey Whispers',
+    content: `Warming his hands over the mug, the grizzled hunter leans in close: 
+    
+"Out on the eastern meadows between here and the mining village, when the moon rises full, ancient glowing stones hum with fey chants. Few have ever found the way through the mist..."
+    
+He scratches a crude landmark sketch into your journal.
+    
+✨ **The Shrine of the Moon Fey** has been revealed on your world map!`,
+    choices: [
+      {
+        text: 'Mark the Sacred Shrine on Map & Continue',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'fey_shrine', unlockNode2: 'highland_pass', unlockNode3: 'mining_village' }
+      }
+    ]
+  },
+  p_timberwall_rest: {
+    id: 'p_timberwall_rest',
+    mapNodeId: 'timberwall_village',
+    title: 'Warm Hearth & Rested Spirits',
+    content: `A hot bowl of plains stew and a night by the crackling fire restore your party to full fighting strength!`,
+    choices: [
+      {
+        text: 'Return to the Overland Map',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'highland_pass', unlockNode2: 'mining_village' }
       }
     ]
   },
@@ -240,12 +317,32 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
     id: 'p_abyssal_win',
     mapNodeId: 'abyssal_chasm',
     title: 'Void Golems Destroyed',
-    content: `You breach the southern entrance to **Ironclad Keep**!`,
+    content: `The void sentinels shatter into inert obsidian shards, dropping 120 Gold! Near the abyss edge, dark purple mist seeps from an ominous fissure etched with ancient void cultist sigils.`,
     choices: [
       {
-        text: 'Enter Ironclad Keep Gates',
+        text: '👁️ Inspect the Whispering Void Fissure (High Risk / High Reward)',
+        nextPassageId: 'p_abyssal_sepulcher_reveal',
+        effects: { addExp: 150, addGold: 120, unlockNode: 'obsidian_forge' }
+      },
+      {
+        text: 'Seal the Fissure & Ascend to the Obsidian Forge',
         action: 'OPEN_MAP',
-        effects: { addExp: 150, addGold: 120, unlockNode: 'ironclad_keep' }
+        effects: { addExp: 150, addGold: 120, unlockNode: 'obsidian_forge' }
+      }
+    ]
+  },
+  p_abyssal_sepulcher_reveal: {
+    id: 'p_abyssal_sepulcher_reveal',
+    mapNodeId: 'abyssal_chasm',
+    title: 'The Shadow Sepulcher Unveiled!',
+    content: `Deciphering the dark sigils, you utter the counter-curse. A hidden subterranean stairway descends into the deep abyss tomb!
+    
+✨ **The Shadow Sepulcher** (Danger Rank 4) has been revealed on your world map!`,
+    choices: [
+      {
+        text: 'Mark the Secret Sepulcher on Map',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'cursed_catacombs', unlockNode2: 'obsidian_forge' }
       }
     ]
   },
@@ -255,12 +352,34 @@ Oakhaven remains a safe haven for weary travelers. Your party rests by the fire,
     id: 'p_forge_enter',
     mapNodeId: 'obsidian_forge',
     title: 'The Magma Forge',
-    content: `Master dwarf smiths forge the legendary **Dragonslayer Sigil** (+30 Attack, +80 HP) in volcanic magma!`,
+    content: `Master dwarf smiths hammer glowing molten steel, granting your party the **Dragonslayer Sigil** (+30 Attack, +80 HP) to pierce dragon scales!`,
     choices: [
       {
-        text: 'Claim Dragonslayer Sigil & Open Map',
+        text: '🔥 Ask the Master Smith to Quench your Weapons in Sacred Dragonfire (40 Gold)',
+        nextPassageId: 'p_forge_altar_reveal',
+        effects: { addGold: -40, addItem: 'dragonslayer_sigil', unlockNode: 'ironclad_keep' }
+      },
+      {
+        text: 'Claim Dragonslayer Sigil & Continue to Ironclad Keep',
         action: 'OPEN_MAP',
-        effects: { addItem: 'dragonslayer_sigil', unlockNode: 'volcanic_slopes', unlockNode2: 'ironclad_keep' }
+        effects: { addItem: 'dragonslayer_sigil', unlockNode: 'ironclad_keep' }
+      }
+    ]
+  },
+  p_forge_altar_reveal: {
+    id: 'p_forge_altar_reveal',
+    mapNodeId: 'obsidian_forge',
+    title: 'Sacred Flame & Dragon Altar Revealed',
+    content: `As your steel enters the dragonfire basin, ancient flames lick the metal with golden radiance. The Master Smith nods reverently:
+    
+"Few walk the high path of the ancient drake worshippers. Seek the hidden obsidian ridge high above the molten flows..."
+    
+✨ **The Altar of the Drake** has been revealed on your world map!`,
+    choices: [
+      {
+        text: 'Mark the Dragon Altar on Map',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'dragon_altar', unlockNode2: 'ironclad_keep' }
       }
     ]
   },
@@ -315,12 +434,12 @@ Guttural shrieks echo through the trees! Goblin scouts draw rusty scimitars, whi
     id: 'p_woods_victory',
     mapNodeId: 'whispering_woods',
     title: 'Victory in the Forest',
-    content: `The last skeletal sentry collapses! You discover a **Sunken Key** etched with sea-runes, 65 XP and 40 Gold!`,
+    content: `The last skeletal sentry collapses! You claim 65 XP and 40 Gold. Trails lead onward to the **Misty Shores** and **Timberwall Plains Village**.`,
     choices: [
       {
-        text: 'Pick up Sunken Key & Open Map',
+        text: 'Claim Spoils & Open Map',
         action: 'OPEN_MAP',
-        effects: { addExp: 65, addGold: 40, addItem: 'sunken_key', unlockNode: 'sunken_ruins', unlockNode2: 'forgotten_crypt', unlockNode3: 'feywild_thicket' }
+        effects: { addExp: 65, addGold: 40, addItem: 'sunken_key', unlockNode: 'misty_shores', unlockNode2: 'timberwall_village' }
       }
     ]
   },
@@ -330,12 +449,12 @@ Guttural shrieks echo through the trees! Goblin scouts draw rusty scimitars, whi
     id: 'p_shores_enter',
     mapNodeId: 'misty_shores',
     title: 'The Fog-Bound Coast',
-    content: `Waves crash violently against jagged black cliffs. A dying wanderer presents an **Arcane Barrier Rune** (+15 Defense, +20 MP).`,
+    content: `Waves crash violently against jagged black cliffs. A dying wanderer presents an **Arcane Barrier Rune** (+15 Defense, +20 MP) and points the way to **Feywild Thicket**.`,
     choices: [
       {
         text: 'Accept Arcane Barrier Rune & Open Map',
         action: 'OPEN_MAP',
-        effects: { addItem: 'barrier_rune', unlockNode: 'sunken_ruins', unlockNode2: 'stormpeak_monastery' }
+        effects: { addItem: 'barrier_rune', unlockNode: 'feywild_thicket' }
       }
     ]
   },
@@ -361,12 +480,32 @@ Ferocious **Harpy Sky-Hunters** screech and dive from ruined pillars!`,
     id: 'p_ruins_victory',
     mapNodeId: 'sunken_ruins',
     title: 'The Temple Cleansed',
-    content: `You uncover an **Obsidian Citadel Passcard** and 100 Gold! The paths to **Ironclad Keep** and **Astral Spire** are open!`,
+    content: `The harpies are defeated! You recover 100 Gold and an **Obsidian Citadel Passcard**. In the dark pool below the altar dais, water ripples around an ancient submerged stone archway marked with a glowing trident glyph.`,
     choices: [
       {
-        text: 'Claim Rewards & Open Map',
+        text: '🗝️ Channel Arcane Mana into the Submerged Rune-Door',
+        nextPassageId: 'p_sunken_vault_reveal',
+        effects: { addExp: 150, addGold: 100, addItem: 'citadel_pass' }
+      },
+      {
+        text: 'Claim Spoils & Ascend Back to Land',
         action: 'OPEN_MAP',
-        effects: { addExp: 150, addGold: 100, addItem: 'citadel_pass', unlockNode: 'ironclad_keep', unlockNode2: 'astral_spire' }
+        effects: { addExp: 150, addGold: 100, addItem: 'citadel_pass' }
+      }
+    ]
+  },
+  p_sunken_vault_reveal: {
+    id: 'p_sunken_vault_reveal',
+    mapNodeId: 'sunken_ruins',
+    title: 'Submerged Vault Unsealed!',
+    content: `Your mana resonates with the ancient drowned masonry. Deep below the flooded arches, a heavy stone vault gate slides open with a shudder!
+    
+✨ **The Sunken Vault of Treasures** has been revealed in the coastal waters on your world map!`,
+    choices: [
+      {
+        text: 'Mark the Submerged Vault on Map & Prepare Dive',
+        action: 'OPEN_MAP',
+        effects: { unlockNode: 'sunken_vault' }
       }
     ]
   },
