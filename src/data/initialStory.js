@@ -320,7 +320,7 @@ Guttural shrieks echo through the trees! Goblin scouts draw rusty scimitars, whi
       {
         text: 'Pick up Sunken Key & Open Map',
         action: 'OPEN_MAP',
-        effects: { addExp: 65, addGold: 40, addItem: 'sunken_key', unlockNode: 'sunken_ruins', unlockNode2: 'forgotten_crypt' }
+        effects: { addExp: 65, addGold: 40, addItem: 'sunken_key', unlockNode: 'sunken_ruins', unlockNode2: 'forgotten_crypt', unlockNode3: 'feywild_thicket' }
       }
     ]
   },
@@ -446,6 +446,113 @@ Click below to complete your campaign, reset your story state, and return to the
       {
         text: '💀 Start Over Fresh as a New Character',
         action: 'RESET_CAMPAIGN'
+      }
+    ]
+  },
+
+  // SECRET MAP NODES PASSAGES
+  p_goblin_market_enter: {
+    id: 'p_goblin_market_enter',
+    mapNodeId: 'goblin_market',
+    title: 'The Goblin Black Market',
+    content: `Shrewd goblin traders chatter behind tables covered in contraband weapons, magical accessories, and stolen elixirs.
+    
+    A veiled goblin merchant slides an **Elixir of Mana Flux** (+50 MP, +10 Attack) forward!`,
+    choices: [
+      {
+        text: 'Purchase Mana Elixir (60 Gold)',
+        action: 'OPEN_MAP',
+        effects: { addGold: -60, addItem: 'mana_ring' }
+      },
+      {
+        text: 'Return to Overland Map',
+        action: 'OPEN_MAP'
+      }
+    ]
+  },
+
+  p_fey_shrine_enter: {
+    id: 'p_fey_shrine_enter',
+    mapNodeId: 'fey_shrine',
+    title: 'Shrine of the Moon Fey',
+    content: `Luminescent fey spirits circle a ancient moonstone shrine, singing celestial melodies.
+    
+    The fey guardian touches your party leader's forehead, bestowing **Ancient Fey Knowledge** (+100 XP & 50 Gold)!`,
+    choices: [
+      {
+        text: 'Receive Fey Blessing & Open Map',
+        action: 'OPEN_MAP',
+        effects: { addExp: 100, addGold: 50 }
+      }
+    ]
+  },
+
+  p_sunken_vault_enter: {
+    id: 'p_sunken_vault_enter',
+    mapNodeId: 'sunken_vault',
+    title: 'Sunken Relic Vault',
+    content: `Massive iron-bound chests gleam beneath crystal-clear water! Harpy Sky-Hunters dive from above to defend the vault!`,
+    choices: [
+      {
+        text: 'Defeat Relic Guardians in Auto-Battle!',
+        triggerBattle: 'sunken_vault_guard',
+        winPassageId: 'p_sunken_vault_win',
+        losePassageId: 'p_defeat_retry'
+      }
+    ]
+  },
+  p_sunken_vault_win: {
+    id: 'p_sunken_vault_win',
+    mapNodeId: 'sunken_vault',
+    title: 'Vault Cleared',
+    content: `You unseal the ancient chest and uncover an **Arcane Barrier Rune** (+15 Defense, +20 MP) and 180 Gold!`,
+    choices: [
+      {
+        text: 'Claim Vault Relics & Open Map',
+        action: 'OPEN_MAP',
+        effects: { addGold: 180, addItem: 'barrier_rune' }
+      }
+    ]
+  },
+
+  p_cursed_catacombs_enter: {
+    id: 'p_cursed_catacombs_enter',
+    mapNodeId: 'cursed_catacombs',
+    title: 'The Shadow Sepulcher',
+    content: `Eerie purple flames ignite along ancient sarcophagi as dark void cultists and skeletal archmages assemble!`,
+    choices: [
+      {
+        text: 'Vanquish Void Wraiths in Auto-Battle!',
+        triggerBattle: 'catacombs_boss',
+        winPassageId: 'p_cursed_catacombs_win',
+        losePassageId: 'p_defeat_retry'
+      }
+    ]
+  },
+  p_cursed_catacombs_win: {
+    id: 'p_cursed_catacombs_win',
+    mapNodeId: 'cursed_catacombs',
+    title: 'Sepulcher Cleansed',
+    content: `The void cultists shatter into dust! You uncover the legendary **Dragonslayer Sigil** (+30 Attack, +80 HP) and 220 Gold!`,
+    choices: [
+      {
+        text: 'Claim Sepulcher Treasure & Open Map',
+        action: 'OPEN_MAP',
+        effects: { addGold: 220, addItem: 'dragonslayer_sigil' }
+      }
+    ]
+  },
+
+  p_dragon_altar_enter: {
+    id: 'p_dragon_altar_enter',
+    mapNodeId: 'dragon_altar',
+    title: 'Altar of the Drake',
+    content: `Sacred volcanic dragonfire ignites your weapons! The spirits of ancient drakes bless your party (+120 XP & +100 Gold) before your final ascent!`,
+    choices: [
+      {
+        text: 'Receive Drake Blessing & Open Map',
+        action: 'OPEN_MAP',
+        effects: { addExp: 120, addGold: 100 }
       }
     ]
   }

@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { MAP_NODES } from '../data/mapNodes';
-import { Shield, Trees, Compass, Landmark, Castle, Flame, Navigation, Skull, ChevronRight, Lock, CheckCircle2, Move, Sparkles, Heart, Users, Clock, CheckCircle, Footprints } from 'lucide-react';
+import { Shield, Trees, Compass, Landmark, Castle, Flame, Navigation, Skull, ChevronRight, Lock, CheckCircle2, Move, Sparkles, Heart, Users, Clock, CheckCircle, Footprints, Zap, Award } from 'lucide-react';
 import { audioManager } from '../engine/audioManager';
+import { NODE_AFFIXES } from '../engine/saveManager';
 
 const ICON_MAP = {
   Shield,
@@ -349,13 +350,15 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
             </div>
 
             {/* Node Markers Grid */}
-            {MAP_NODES.map(node => {
+            {MAP_NODES.filter(node => !node.isSecret || (gameState.activeSecretNodes || []).includes(node.id)).map(node => {
               const IconComp = ICON_MAP[node.icon] || Shield;
               const unlocked = gameState.unlockedMapNodes.includes(node.id);
               const isCurrent = node.id === gameState.currentMapNodeId;
               const isSelected = node.id === selectedNodeId;
               const isCleared = completedBattles.includes(node.id);
               const heroAtNode = wanderingHeroes.find(h => h.nodeId === node.id && !followers.some(f => f.id === h.id));
+              const nodeAffixKey = (gameState.nodeAffixes || {})[node.id];
+              const nodeAffix = nodeAffixKey ? NODE_AFFIXES[nodeAffixKey] : null;
 
               return (
                 <button
@@ -371,6 +374,8 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
                       ? 'bg-amber-500 border-white text-slate-950 scale-125'
                       : isSelected
                       ? 'bg-slate-900 border-amber-400 text-amber-300 scale-110'
+                      : node.isSecret
+                      ? 'bg-purple-950/90 border-purple-400 text-purple-300 hover:scale-110 shadow-purple-900/50'
                       : unlocked
                       ? (isCleared || node.isSafeSpot ? 'bg-slate-900 border-emerald-500 text-emerald-400 hover:scale-110' : 'bg-slate-900 border-amber-500/60 text-amber-400 hover:scale-110')
                       : 'bg-slate-950/90 border-slate-800 text-slate-700 cursor-not-allowed'
@@ -381,6 +386,13 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
                     {unlocked && (isCleared || node.isSafeSpot) && (
                       <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-emerald-500 rounded-full border border-slate-950 flex items-center justify-center text-[10px] text-slate-950 font-bold" title={isCleared ? "Battle Defeated & Cleared" : "Safe Spot"}>
                         ✓
+                      </span>
+                    )}
+
+                    {/* Node Affix Indicator */}
+                    {unlocked && nodeAffix && (
+                      <span className="absolute -top-1 -left-1 px-1 py-0.5 bg-amber-500/90 rounded-full border border-amber-300 text-[8px] text-slate-950 font-bold shadow" title={nodeAffix.name}>
+                        ⚡
                       </span>
                     )}
 
@@ -398,9 +410,11 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
                       ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-md font-bold'
                       : isSelected
                       ? 'bg-slate-900 text-amber-200 border-amber-400'
+                      : node.isSecret
+                      ? 'bg-purple-950/90 text-purple-200 border-purple-500/50'
                       : 'bg-slate-950/90 text-slate-300 border-slate-800'
                   }`}>
-                    {node.name} {heroAtNode ? '👤' : ''} {isCleared ? '✓' : ''}
+                    {node.isSecret ? '✨ ' : ''}{node.name} {heroAtNode ? '👤' : ''} {isCleared ? '✓' : ''}
                   </div>
                 </button>
               );
@@ -433,6 +447,13 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
                 Region: {selectedNode.region || 'Aethelgard'}
               </span>
 
+              {selectedNode.isSecret && (
+                <span className="text-[11px] bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded border border-purple-500/40 font-bold flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                  <span>✨ Secret Uncharted Realm Node</span>
+                </span>
+              )}
+
               {isSelectedCleared && (
                 <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded border border-emerald-500/40 font-bold flex items-center gap-1">
                   <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
@@ -454,6 +475,19 @@ export default function OverlandMap({ gameState, onSelectMapNode }) {
                 </span>
               )}
             </div>
+
+            {/* Active Node Affix Modifier Banner */}
+            {(gameState.nodeAffixes || {})[selectedNode.id] && (
+              <div className="mb-4 p-3 rounded-xl bg-slate-900/90 border border-amber-500/40 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                  <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
+                  <span>Realm Modifier: {NODE_AFFIXES[(gameState.nodeAffixes || {})[selectedNode.id]]?.name}</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-normal">
+                  {NODE_AFFIXES[(gameState.nodeAffixes || {})[selectedNode.id]]?.desc}
+                </p>
+              </div>
+            )}
 
             <p className="text-sm text-slate-300 leading-relaxed mb-6">
               {selectedNode.description}

@@ -1,6 +1,17 @@
-export const GAME_VERSION = 'v0.9.10';
+export const GAME_VERSION = 'v0.9.11';
 
 export const CHANGELOG_HISTORY = [
+  {
+    version: 'v0.9.11',
+    date: 'October 4, 2026',
+    title: 'Secret Shifting Nodes, Dynamic Zone Enemy Pools & Realm Modifiers',
+    highlights: [
+      '✨ Secret & Uncharted Realm Nodes: Added 5 secret map nodes (Goblin Black Market, Shrine of the Moon Fey, Sunken Vault, Shadow Sepulcher, Altar of the Drake) that procedurally roll and reveal when adjacent main nodes are cleared.',
+      '🎲 Dynamic Zone Encounter Squads: Expanded enemy catalog (Goblin Sniper, Dire Wolf, Skeleton Archmage, Harpy Matriarch, Shadow Void Cultist, Volcanic Lava Drake) with randomized squad compositions and sizes per run.',
+      '⚡ Realm Modifiers & Affixes: Map nodes dynamically receive run event affixes (💰 Gold Hoard, ☠️ Elite Ambush, 🔮 Arcane Surge, 🌿 Fey Blessing, 🛡️ Fortified Post) rendered in the node inspector.',
+      '🌿 Feywild Thicket Accessibility Fix: Resolved missing passage unlock so Feywild Thicket is fully accessible upon defeating Whispering Woods.'
+    ]
+  },
   {
     version: 'v0.9.10',
     date: 'October 4, 2026',

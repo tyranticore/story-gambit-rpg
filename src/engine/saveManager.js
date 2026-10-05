@@ -116,16 +116,46 @@ export function updateStoredGlobalCodex(codex) {
   } catch (e) {}
 }
 
+export const NODE_AFFIXES = {
+  gold_hoard: { id: 'gold_hoard', name: '💰 Gold Hoard', desc: '+75% Gold rewards on this node', color: 'amber' },
+  elite_ambush: { id: 'elite_ambush', name: '☠️ Elite Ambush', desc: 'Enemies have +20% HP & Attack, but drop bonus paper doll gear!', color: 'red' },
+  arcane_surge: { id: 'arcane_surge', name: '🔮 Arcane Surge', desc: '+50% Mana regen for party members in combat', color: 'purple' },
+  fey_blessing: { id: 'fey_blessing', name: '🌿 Fey Blessing', desc: 'Fully heals party HP & MP upon clearing node', color: 'emerald' },
+  fortified_post: { id: 'fortified_post', name: '🛡️ Fortified Post', desc: 'Enemies gain +15 bonus Defense', color: 'blue' }
+};
+
+export const ALL_SECRET_NODES = ['goblin_market', 'fey_shrine', 'sunken_vault', 'cursed_catacombs', 'dragon_altar'];
+
+export function rollCampaignSecretNodes() {
+  const shuffled = [...ALL_SECRET_NODES].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 3);
+}
+
+export function rollCampaignNodeAffixes() {
+  const nonTownNodes = ['whispering_woods', 'river_crossing', 'watchtower_ruins', 'forgotten_crypt', 'sunken_ruins', 'highland_pass', 'abyssal_chasm', 'ironclad_keep', 'volcanic_slopes'];
+  const affixKeys = Object.keys(NODE_AFFIXES);
+  const shuffledNodes = [...nonTownNodes].sort(() => 0.5 - Math.random());
+  const selectedNodes = shuffledNodes.slice(0, 5);
+
+  const affixes = {};
+  selectedNodes.forEach((nodeId, idx) => {
+    affixes[nodeId] = affixKeys[idx % affixKeys.length];
+  });
+  return affixes;
+}
+
 export function getInitialGameState(selectedClassId = 'warrior') {
   const classDef = HERO_CLASSES[selectedClassId] || HERO_CLASSES.warrior;
   const globalCodex = getStoredGlobalCodex();
 
   return {
-    version: 5,
+    version: 6,
     timestamp: Date.now(),
     currentPassageId: 'p_oakhaven_start',
     currentMapNodeId: 'oakhaven',
     unlockedMapNodes: ['oakhaven'],
+    activeSecretNodes: rollCampaignSecretNodes(),
+    nodeAffixes: rollCampaignNodeAffixes(),
     completedBattles: [], // Nodes where battles have been defeated
     claimedRewards: [], // Passage / Node IDs where one-time rewards have been claimed
     wanderingHeroes: generateInitialWanderingHeroes(selectedClassId),
@@ -187,6 +217,10 @@ export function sanitizeGameState(state, selectedClassId = 'warrior') {
     unlockedMapNodes: Array.isArray(state.unlockedMapNodes) && state.unlockedMapNodes.length > 0
       ? state.unlockedMapNodes
       : defaultState.unlockedMapNodes,
+    activeSecretNodes: Array.isArray(state.activeSecretNodes) && state.activeSecretNodes.length > 0
+      ? state.activeSecretNodes
+      : defaultState.activeSecretNodes,
+    nodeAffixes: state.nodeAffixes || defaultState.nodeAffixes,
     completedBattles: Array.isArray(state.completedBattles) ? state.completedBattles : [],
     claimedRewards: Array.isArray(state.claimedRewards) ? state.claimedRewards : [],
     wanderingHeroes: Array.isArray(state.wanderingHeroes) && state.wanderingHeroes.length > 0

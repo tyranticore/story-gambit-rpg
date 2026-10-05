@@ -13,7 +13,7 @@ import { MAP_NODES } from './data/mapNodes';
 import { getInitialGameState, saveToLocalStorage, loadFromLocalStorage, sanitizeGameState, advanceMapTurn, getStoredGlobalCodex, updateStoredGlobalCodex } from './engine/saveManager';
 import { INITIAL_STORY } from './data/initialStory';
 import { HERO_CLASSES } from './data/heroClasses';
-import { ENEMIES, ENCOUNTERS } from './data/enemyDatabase';
+import { ENEMIES, ENCOUNTERS, getEncounter } from './data/enemyDatabase';
 import { GAME_VERSION } from './version';
 import { Scroll } from 'lucide-react';
 import { audioManager } from './engine/audioManager';
@@ -97,6 +97,20 @@ export default function App() {
           updatedNodes.push(effects.unlockNode4);
         }
       }
+
+      // Auto-reveal connected secret nodes rolled for this campaign run
+      const activeSecrets = prev.activeSecretNodes || [];
+      const nodesToCheck = [...updatedNodes, prev.currentMapNodeId];
+      nodesToCheck.forEach(nodeId => {
+        const nodeObj = MAP_NODES.find(n => n.id === nodeId);
+        if (nodeObj && nodeObj.connectedTo) {
+          nodeObj.connectedTo.forEach(connId => {
+            if (activeSecrets.includes(connId) && !updatedNodes.includes(connId)) {
+              updatedNodes.push(connId);
+            }
+          });
+        }
+      });
 
       const targetPassageId = nextPassageId || prev.currentPassageId;
       const passageObj = INITIAL_STORY[targetPassageId];
@@ -337,7 +351,16 @@ export default function App() {
 
   // Trigger Battle
   const handleTriggerBattle = (encounterKey, winPassageId, losePassageId) => {
-    const encounter = ENCOUNTERS[encounterKey];
+    const currentNode = MAP_NODES.find(n => n.id === gameState.currentMapNodeId);
+    const nodeAffixKey = (gameState.nodeAffixes || {})[gameState.currentMapNodeId];
+
+    const encounter = getEncounter(
+      encounterKey,
+      currentNode?.region || 'The Oakwood Lowlands',
+      currentNode?.danger || 2,
+      nodeAffixKey
+    );
+
     if (encounter && encounter.enemies) {
       const enemyTypes = encounter.enemies.map(e => e.unitTypeId).filter(Boolean);
       setGameState(prev => {
@@ -352,7 +375,7 @@ export default function App() {
       });
     }
 
-    setActiveBattle({ encounterKey, winPassageId, losePassageId });
+    setActiveBattle({ encounterKey, dynamicEncounter: encounter, winPassageId, losePassageId });
     setActiveTab('battle');
   };
 
@@ -485,6 +508,8 @@ export default function App() {
         {activeTab === 'battle' && activeBattle && (
           <BattleArena
             encounterKey={activeBattle.encounterKey}
+            dynamicEncounter={activeBattle.dynamicEncounter}
+            nodeAffix={(gameState.nodeAffixes || {})[gameState.currentMapNodeId]}
             playerStats={gameState.player}
             playerGambits={gameState.player.gambits}
             followers={gameState.followers}

@@ -31,7 +31,7 @@ export const MAP_NODES = [
     description: 'Crumbling stone watchtower overlooking the valley. Local rangers leave caches of arrows and gear for travelers.',
     entryPassageId: 'p_watchtower_enter',
     unlockedByDefault: false,
-    connectedTo: ['oakhaven', 'whispering_woods', 'mining_village']
+    connectedTo: ['oakhaven', 'whispering_woods', 'mining_village', 'goblin_market']
   },
   {
     id: 'river_crossing',
@@ -67,7 +67,25 @@ export const MAP_NODES = [
     entryPassageId: 'p_woods_enter',
     battleEncounter: 'goblin_patrol',
     unlockedByDefault: false,
-    connectedTo: ['oakhaven', 'watchtower_ruins', 'sunken_ruins', 'feywild_thicket', 'forgotten_crypt']
+    connectedTo: ['oakhaven', 'watchtower_ruins', 'sunken_ruins', 'feywild_thicket', 'forgotten_crypt', 'goblin_market']
+  },
+  {
+    id: 'goblin_market',
+    name: 'Goblin Black Market',
+    subtitle: 'Secret Woodland Trading Encampment',
+    type: 'town',
+    hasTavern: false,
+    isSafeSpot: true,
+    isSecret: true,
+    region: 'The Oakwood Lowlands',
+    x: 28,
+    y: 90,
+    icon: 'Sparkles',
+    danger: 0,
+    description: 'A shadowy encampment hidden behind thick brambles where rogue goblin merchants trade rare accessories and weapons.',
+    entryPassageId: 'p_goblin_market_enter',
+    unlockedByDefault: false,
+    connectedTo: ['whispering_woods', 'watchtower_ruins']
   },
   {
     id: 'misty_shores',
@@ -101,7 +119,25 @@ export const MAP_NODES = [
     description: 'Bramble thicket where luminescent fey spirits bless worthy adventurers and restore party health.',
     entryPassageId: 'p_feywild_enter',
     unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'forgotten_crypt']
+    connectedTo: ['whispering_woods', 'forgotten_crypt', 'fey_shrine']
+  },
+  {
+    id: 'fey_shrine',
+    name: 'Shrine of the Moon Fey',
+    subtitle: 'Secret Moonlit Glade Altar',
+    type: 'safe_sanctuary',
+    hasTavern: false,
+    isSafeSpot: true,
+    isSecret: true,
+    region: 'The Oakwood Lowlands',
+    x: 44,
+    y: 88,
+    icon: 'Sparkles',
+    danger: 0,
+    description: 'Luminescent blue crystals encircle a sacred altar. Fey spirits mend party wounds and bestow ancient mana.',
+    entryPassageId: 'p_fey_shrine_enter',
+    unlockedByDefault: false,
+    connectedTo: ['feywild_thicket', 'forgotten_crypt']
   },
   {
     id: 'forgotten_crypt',
@@ -119,7 +155,7 @@ export const MAP_NODES = [
     entryPassageId: 'p_crypt_enter',
     battleEncounter: 'goblin_patrol',
     unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'feywild_thicket', 'sunken_ruins', 'abyssal_chasm']
+    connectedTo: ['whispering_woods', 'feywild_thicket', 'sunken_ruins', 'abyssal_chasm', 'fey_shrine']
   },
   {
     id: 'mining_village',
@@ -154,7 +190,26 @@ export const MAP_NODES = [
     entryPassageId: 'p_ruins_enter',
     battleEncounter: 'harpy_pack',
     unlockedByDefault: false,
-    connectedTo: ['whispering_woods', 'misty_shores', 'forgotten_crypt', 'astral_spire', 'ironclad_keep']
+    connectedTo: ['whispering_woods', 'misty_shores', 'forgotten_crypt', 'astral_spire', 'ironclad_keep', 'sunken_vault']
+  },
+  {
+    id: 'sunken_vault',
+    name: 'Sunken Vault of Treasures',
+    subtitle: 'Secret Underwater Relic Chamber',
+    type: 'dungeon',
+    hasTavern: false,
+    isSafeSpot: false,
+    isSecret: true,
+    region: 'The Arcane Coast',
+    x: 52,
+    y: 22,
+    icon: 'Landmark',
+    danger: 4,
+    description: 'Submerged stone vault filled with ancient chests guarded by elite harpy sky-hunters and siren specters.',
+    entryPassageId: 'p_sunken_vault_enter',
+    battleEncounter: 'sunken_vault_guard',
+    unlockedByDefault: false,
+    connectedTo: ['sunken_ruins', 'astral_spire']
   },
   {
     id: 'highland_pass',
@@ -206,7 +261,7 @@ export const MAP_NODES = [
     description: 'Soaring crystalline tower housing ancient spellbooks where wandering sorcerers seek adventuring guilds.',
     entryPassageId: 'p_astral_enter',
     unlockedByDefault: false,
-    connectedTo: ['sunken_ruins', 'stormpeak_monastery', 'obsidian_forge', 'ironclad_keep']
+    connectedTo: ['sunken_ruins', 'stormpeak_monastery', 'obsidian_forge', 'ironclad_keep', 'sunken_vault']
   },
   {
     id: 'abyssal_chasm',
@@ -224,7 +279,26 @@ export const MAP_NODES = [
     entryPassageId: 'p_abyssal_enter',
     battleEncounter: 'iron_golem_guard',
     unlockedByDefault: false,
-    connectedTo: ['forgotten_crypt', 'ironclad_keep']
+    connectedTo: ['forgotten_crypt', 'ironclad_keep', 'cursed_catacombs']
+  },
+  {
+    id: 'cursed_catacombs',
+    name: 'The Shadow Sepulcher',
+    subtitle: 'Secret Cursed Void Tomb',
+    type: 'dungeon',
+    hasTavern: false,
+    isSafeSpot: false,
+    isSecret: true,
+    region: 'The Central Catacombs',
+    x: 68,
+    y: 82,
+    icon: 'Landmark',
+    danger: 4,
+    description: 'Tomb of ancient void cultists. High risk, legendary rewards await those who defeat the void wraiths!',
+    entryPassageId: 'p_cursed_catacombs_enter',
+    battleEncounter: 'catacombs_boss',
+    unlockedByDefault: false,
+    connectedTo: ['abyssal_chasm', 'ironclad_keep']
   },
   {
     id: 'obsidian_forge',
@@ -241,7 +315,25 @@ export const MAP_NODES = [
     description: 'Ancient dwarf forge built over magma streams where master blacksmiths forge legendary gear.',
     entryPassageId: 'p_forge_enter',
     unlockedByDefault: false,
-    connectedTo: ['highland_pass', 'astral_spire', 'volcanic_slopes']
+    connectedTo: ['highland_pass', 'astral_spire', 'volcanic_slopes', 'dragon_altar']
+  },
+  {
+    id: 'dragon_altar',
+    name: 'Altar of the Drake',
+    subtitle: 'Secret Volcanic Sanctuary Altar',
+    type: 'safe_sanctuary',
+    hasTavern: false,
+    isSafeSpot: true,
+    isSecret: true,
+    region: 'Nether Volcanic Summit',
+    x: 82,
+    y: 22,
+    icon: 'Flame',
+    danger: 0,
+    description: 'Ancient dragon shrine carved into obsidian rock. High priests bless your party with Dragonslayer flames before the final summit.',
+    entryPassageId: 'p_dragon_altar_enter',
+    unlockedByDefault: false,
+    connectedTo: ['obsidian_forge', 'volcanic_slopes']
   },
   {
     id: 'ironclad_keep',
@@ -259,7 +351,7 @@ export const MAP_NODES = [
     entryPassageId: 'p_keep_enter',
     battleEncounter: 'iron_golem_guard',
     unlockedByDefault: false,
-    connectedTo: ['sunken_ruins', 'astral_spire', 'abyssal_chasm', 'volcanic_slopes', 'dragon_peak']
+    connectedTo: ['sunken_ruins', 'astral_spire', 'abyssal_chasm', 'volcanic_slopes', 'dragon_peak', 'cursed_catacombs']
   },
   {
     id: 'volcanic_slopes',
@@ -277,7 +369,7 @@ export const MAP_NODES = [
     entryPassageId: 'p_slopes_enter',
     battleEncounter: 'iron_golem_guard',
     unlockedByDefault: false,
-    connectedTo: ['obsidian_forge', 'ironclad_keep', 'dragon_peak']
+    connectedTo: ['obsidian_forge', 'ironclad_keep', 'dragon_peak', 'dragon_altar']
   },
   {
     id: 'dragon_peak',

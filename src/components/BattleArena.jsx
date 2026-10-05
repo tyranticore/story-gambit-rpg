@@ -12,8 +12,8 @@ const getPortraitPath = (id) => {
   return `/assets/portraits/${normalized}_portrait.png`;
 };
 
-export default function BattleArena({ encounterKey, playerStats, playerGambits, followers, onBattleComplete }) {
-  const encounter = ENCOUNTERS[encounterKey] || ENCOUNTERS.goblin_patrol;
+export default function BattleArena({ encounterKey, dynamicEncounter, nodeAffix, playerStats, playerGambits, followers, onBattleComplete }) {
+  const encounter = dynamicEncounter || ENCOUNTERS[encounterKey] || ENCOUNTERS.goblin_patrol;
 
   const [battleState, setBattleState] = useState('RUNNING'); // RUNNING, VICTORY, DEFEAT, RETREATED, PAUSED
   const [battleStance, setBattleStance] = useState('BALANCED'); // AGGRESSIVE, BALANCED, DEFENSIVE, STEALTH, FLEE
