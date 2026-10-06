@@ -270,6 +270,19 @@ export const DEFAULT_PATH_COLORS = {
   }
 };
 
+export const DEFAULT_PATH_STYLE = {
+  filterEnabled: true,
+  colorMode: 'custom',
+  defaultPathColor: '#8c6239',
+  defaultTrackColor: '#54381e',
+  showTracks: true,
+  strokeWidth: 4.5,
+  noiseIntensity: 4.5,
+  roughness: 0.05,
+  opacity: 0.88,
+  routeColors: { ...DEFAULT_PATH_COLORS }
+};
+
 export const getPathPairKey = (id1, id2) => {
   return [id1, id2].sort().join('__');
 };
